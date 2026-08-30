@@ -1,0 +1,754 @@
+@import 'tailwindcss';
+
+/* ------------------------------------------------------------------
+   SkinTrix360 — design tokens
+   This is the app's own palette: --brand is the one and only accent —
+   never paired with a second competing brand color (no purple/indigo).
+   Names ending in `-deep` are accessible shades of the color before them
+   (same hue, dark enough to pass as text or a hover-darken), not a
+   separate color in their own right.
+   ------------------------------------------------------------------ */
+@theme {
+  --font-sans: 'Nunito Variable', ui-sans-serif, system-ui, -apple-system,
+    'Segoe UI', Roboto, sans-serif;
+
+  /* ---------------------------------------------------------------
+     SkinTrix 360 brand palette. Declared here as new names; the legacy
+     aliases below keep their original values so the hero is unaffected.
+     Everything after the hero re-points those aliases at these — see
+     the scoped block further down.
+     --------------------------------------------------------------- */
+  --brand-navy: #182838;
+  --brand-navy-800: #1F3247;
+  --brand-navy-600: #35455A;
+  --brand-navy-400: #5B6879;
+  --brand-navy-200: #AEB6C0;
+  --brand-navy-100: #D7DCE2;
+  --brand-navy-50: #EEF1F4;
+
+  --brand-teal: #1B6B80;
+  --brand-teal-600: #175A6C;
+  --brand-teal-300: #7FB2BF;
+  --brand-teal-100: #DCEAEE;
+  --brand-teal-50: #F1F7F9;
+
+  --brand-sky: #1B80A2;
+  --brand-sky-300: #83BCD0;
+  --brand-sky-100: #DEEDF3;
+  --brand-sky-50: #F2F8FB;
+
+  --brand-violet: #5A5DAB;
+  --brand-violet-300: #A9ABD6;
+  --brand-violet-100: #E4E5F2;
+  --brand-violet-50: #F4F4FA;
+
+  --brand-border: #E1E8EC;
+
+  /* ---------------------------------------------------------------
+     Light section grounds. Each is a brand hue pulled almost to white.
+     --------------------------------------------------------------- */
+  --tint-offwhite: #FBFCFD;
+  --tint-sky: #EFF6FA;
+  --tint-aqua: #EDF6F6;
+  --tint-lavender: #F4F4FB;
+  --tint-bluegray: #EFF2F6;
+
+  --wash-sky: linear-gradient(180deg, #EFF6FA, #FFFFFF);
+  --wash-aqua: linear-gradient(180deg, #EDF6F6, #FFFFFF);
+
+  --color-primary: #1cbab5;
+  --color-primary-light: #e6f7f7;
+  --color-primary-mid: #b2e8e7;
+  --color-primary-deep: #0b7a75; /* accessible as text; doubles as the hover-darken */
+  --color-on-primary: #ffffff;
+
+  --color-azure: #3486d6;
+
+  --color-ink: #111114;
+  --color-text-body: #6b7280;
+  --color-text-muted: #9ca3af;
+  --color-text-faint: #c4c8ce;
+
+  --color-canvas: #f6f6fa;
+  --color-surface: #ffffff;
+  --color-surface-muted: #f4f5f7;
+  --color-surface-subtle: #f7f9f8;
+
+  --color-hairline: #e7e9ec;
+  --color-hairline-strong: #dcdfe4;
+
+  --color-success: #10b981;
+  --color-warning: #f59e0b;
+  --color-danger: #ef4444;
+  --color-critical: #f43f5e;
+
+  --color-teal: var(--color-primary);
+  --color-teal-deep: var(--color-primary-deep);
+  --color-ink-soft: var(--color-text-body);
+  --color-ink-muted: var(--color-text-muted);
+  --color-ink-line: var(--color-hairline);
+
+  --radius-panel: 20px;
+  --radius-card: 28px;
+
+  --shadow-soft: 0 1px 2px rgb(0 0 0 / 0.04), 0 8px 18px -6px rgb(0 0 0 / 0.05);
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.03), 0 8px 18px rgb(0 0 0 / 0.05);
+  --shadow-float: 0 4px 8px rgb(12 24 60 / 0.03), 0 52px 96px -40px rgb(12 24 60 / 0.3);
+
+  /* Section rhythm. One value drives every section's vertical padding.
+     The floor stays at 4rem so phones keep real breathing room. */
+  --section-rhythm: clamp(4rem, 2.75rem + 5vw, 7.5rem);
+
+  /* Motion — one curve for the entire site */
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+
+  --animate-float: float 9s cubic-bezier(0.32, 0.72, 0, 1) infinite;
+  /* Used only inside the device screens, where a slow capture sweep is the
+     product behaviour rather than decoration. */
+  --animate-scan: scan 6s cubic-bezier(0.32, 0.72, 0, 1) infinite;
+  --animate-halo: halo 4.5s cubic-bezier(0.32, 0.72, 0, 1) infinite;
+
+  /* ----------------------------------------------------------------
+     How-It-Works card animations.
+     One vocabulary across the three cards so Scan → Explore → Follow
+     reads as a single experience: the same 7s loop, the same easing,
+     and motion that always resolves rather than snapping back.
+     ---------------------------------------------------------------- */
+
+  /* 01 — the capture sweep travelling down the face and back. */
+  --animate-scan-sweep: scan-sweep 7s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+  /* 01 — detection points landing as the sweep passes them. */
+  --animate-scan-point: scan-point 7s cubic-bezier(0.32, 0.72, 0, 1) infinite;
+  /* 01 — the status readout, handed off mid-loop: "Scanning" while the sweep
+     descends, "Analyzing" once it has passed. Two elements rather than one,
+     because CSS cannot animate text content. */
+  --animate-scan-status-a: scan-status-a 7s cubic-bezier(0.32, 0.72, 0, 1) infinite;
+  --animate-scan-status-b: scan-status-b 7s cubic-bezier(0.32, 0.72, 0, 1) infinite;
+  /* 02 — continuous horizontal travel. Linear on purpose: any easing makes
+     a seamless loop visibly pulse at the wrap point. */
+  --animate-drift-left: drift-left 34s linear infinite;
+  --animate-drift-right: drift-right 34s linear infinite;
+  /* 03 — the trend line drawing itself, then resetting. */
+  --animate-trend-draw: trend-draw 7s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+  /* 03 — each reading arriving after the line reaches it. */
+  --animate-trend-point: trend-point 7s cubic-bezier(0.32, 0.72, 0, 1) infinite;
+
+  @keyframes scan-sweep {
+    0%,
+    0.01% {
+      transform: translate3d(0, -128%, 0);
+      opacity: 0;
+    }
+    8% {
+      opacity: 1;
+    }
+    42% {
+      transform: translate3d(0, 128%, 0);
+      opacity: 1;
+    }
+    50% {
+      transform: translate3d(0, 128%, 0);
+      opacity: 0;
+    }
+    58% {
+      transform: translate3d(0, 128%, 0);
+      opacity: 1;
+    }
+    92% {
+      transform: translate3d(0, -128%, 0);
+      opacity: 1;
+    }
+    100% {
+      transform: translate3d(0, -128%, 0);
+      opacity: 0;
+    }
+  }
+
+  /* One keyframe for every detection point; which point lights when is set by
+     `animation-delay` at the call site. Keyframe selectors cannot take a
+     `var()`, so per-point timing has to come from the delay, not the curve. */
+  @keyframes scan-point {
+    0%,
+    4% {
+      opacity: 0;
+      transform: scale(0.4);
+    }
+    12%,
+    46% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    56%,
+    100% {
+      opacity: 0;
+      transform: scale(0.4);
+    }
+  }
+
+  @keyframes scan-status-a {
+    0%,
+    3% {
+      opacity: 0;
+    }
+    9%,
+    40% {
+      opacity: 1;
+    }
+    46%,
+    100% {
+      opacity: 0;
+    }
+  }
+
+  @keyframes scan-status-b {
+    0%,
+    48% {
+      opacity: 0;
+    }
+    55%,
+    90% {
+      opacity: 1;
+    }
+    96%,
+    100% {
+      opacity: 0;
+    }
+  }
+
+  @keyframes drift-left {
+    from {
+      transform: translate3d(0, 0, 0);
+    }
+    to {
+      transform: translate3d(-50%, 0, 0);
+    }
+  }
+
+  @keyframes drift-right {
+    from {
+      transform: translate3d(-50%, 0, 0);
+    }
+    to {
+      transform: translate3d(0, 0, 0);
+    }
+  }
+
+  @keyframes trend-draw {
+    0% {
+      stroke-dashoffset: var(--trend-len, 300);
+    }
+    55%,
+    88% {
+      stroke-dashoffset: 0;
+    }
+    100% {
+      stroke-dashoffset: var(--trend-len, 300);
+    }
+  }
+
+  /* As with `scan-point`, the per-reading offset comes from `animation-delay`. */
+  @keyframes trend-point {
+    0%,
+    6% {
+      opacity: 0;
+      transform: translateY(5px) scale(0.4);
+    }
+    16%,
+    84% {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+    94%,
+    100% {
+      opacity: 0;
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  @keyframes float {
+    0%,
+    100% {
+      transform: translate3d(0, 0, 0);
+    }
+    50% {
+      transform: translate3d(0, -12px, 0);
+    }
+  }
+
+  @keyframes scan {
+    0% {
+      transform: translate3d(0, 0, 0);
+      opacity: 0;
+    }
+    12%,
+    80% {
+      opacity: 1;
+    }
+    100% {
+      transform: translate3d(0, var(--scan-travel, 460%), 0);
+      opacity: 0;
+    }
+  }
+
+  @keyframes halo {
+    0%,
+    100% {
+      transform: scale(1);
+      opacity: 0.5;
+    }
+    50% {
+      transform: scale(2);
+      opacity: 0;
+    }
+  }
+}
+
+/* ------------------------------------------------------------------
+   Base
+   ------------------------------------------------------------------ */
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    scroll-padding-top: 6rem;
+  }
+
+  body {
+    background-color: var(--color-canvas);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-synthesis-weight: none;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overflow-x: clip;
+  }
+
+  /* Headings stay at medium weight — the scale carries the hierarchy,
+     not the stroke weight. */
+  h1,
+  h2,
+  h3 {
+    font-weight: 500;
+    letter-spacing: -0.035em;
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  ::selection {
+    background-color: color-mix(in oklab, var(--color-teal) 26%, transparent);
+    color: var(--color-ink);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-teal-deep);
+    outline-offset: 3px;
+    border-radius: 4px;
+  }
+
+  /* Lenis */
+  html.lenis,
+  html.lenis body {
+    height: auto;
+  }
+  .lenis.lenis-smooth {
+    scroll-behavior: auto !important;
+  }
+  .lenis.lenis-stopped {
+    overflow: hidden;
+  }
+}
+
+/* ------------------------------------------------------------------
+   Utilities
+   ------------------------------------------------------------------ */
+
+@utility shell {
+  margin-inline: auto;
+  width: 100%;
+  max-width: 76rem;
+  padding-inline: 1.5rem;
+  @media (width >= 48rem) {
+    padding-inline: 2.5rem;
+  }
+}
+
+
+/* Section rhythm. Generous, identical everywhere — the repetition is
+   what makes the scroll feel composed. */
+@utility section-y {
+  padding-block: var(--section-rhythm);
+}
+
+/* Top half only — for the closing section, whose device runs off the bottom
+   edge and so must carry no bottom padding. Same token, so its opening gap
+   still matches every other section exactly. */
+@utility section-y-top {
+  padding-block-start: var(--section-rhythm);
+}
+
+@utility text-display {
+  font-size: clamp(2.75rem, 1.5rem + 4.3vw, 5.25rem);
+  line-height: 1.02;
+  letter-spacing: -0.042em;
+  font-weight: 500;
+}
+
+@utility text-section {
+  font-size: clamp(2rem, 1.35rem + 2.5vw, 3.5rem);
+  line-height: 1.08;
+  letter-spacing: -0.038em;
+  font-weight: 500;
+}
+
+@utility text-statement {
+  font-size: clamp(1.5rem, 1.1rem + 1.5vw, 2.25rem);
+  line-height: 1.22;
+  letter-spacing: -0.03em;
+  font-weight: 500;
+}
+
+@utility text-lead {
+  font-size: clamp(1.0625rem, 1rem + 0.25vw, 1.1875rem);
+  line-height: 1.68;
+}
+
+@utility text-eyebrow {
+  font-size: 0.75rem;
+  line-height: 1;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+/* Reads as light, not as a border. */
+@utility hairline {
+  box-shadow: inset 0 0 0 1px var(--color-hairline);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+
+
+/* ==== SKINTRIX FRAME SYSTEM =======================================
+   Brand colour outside, one white website surface inside it.
+
+   The canvas is only the environment; the interior returns to the light
+   system so each section keeps its own ground and identity. Nothing here
+   forces sections white — that colour belongs to the frame.
+   ================================================================== */
+:root {
+  /* The environment. */
+  /* The environment the site sits in: the logo icon's own hues washed down to
+     near-white. Derived from #1EB9B7 / #1596D2 / #5D64D3 at ~8-10% strength, so
+     the palette reads as one family while the saturated versions stay reserved
+     for accents, buttons and borders. */
+  --page: #EAF4F7;
+  --page-wash: linear-gradient(135deg, #E9F7F6 0%, #E7F3FA 54%, #F0EFFC 100%);
+
+  /* Interior ground. Sections inside the frame sit on white; only the world
+     outside the frame carries the tint. */
+  --canvas: #FFFFFF;
+
+  /* Brand */
+  --accent: #1EB9B7;
+  --accent-deep: #17908F;
+  --cyan: #0BB0C6;
+  --blue: #1596D2;
+  --indigo: #5D64D3;
+  --icon-gradient: linear-gradient(120deg, #1EB9B7 0%, #0BB0C6 38%, #1596D2 70%, #5D64D3 100%);
+  --icon-glow: radial-gradient(circle, rgb(30 185 183 / 0.20) 0%, rgb(11 176 198 / 0.12) 42%, transparent 74%);
+
+  /* Interior text and surfaces. */
+  --text: #1A2A33;
+  --text-soft: #4E6069;
+  --text-muted: #8496A0;
+  --line: #E3EDEE;
+  --line-soft: #EFF5F6;
+
+  --bg: #FFFFFF;
+  --bg-cool: #FAFEFE;
+  --bg-tint: #F5FBFB;
+  --panel-radius: 20px;
+
+  /* ---- existing names repointed */
+  --color-canvas: var(--bg);
+  --color-surface: #FFFFFF;
+  --color-surface-muted: var(--bg-cool);
+  --color-surface-subtle: var(--bg-tint);
+  --color-ink: var(--text);
+  --color-text-body: var(--text-soft);
+  --color-text-muted: var(--text-muted);
+  --color-text-faint: var(--text-muted);
+  --color-primary: var(--accent);
+  --color-primary-deep: var(--accent-deep);
+  --color-primary-light: #DEF5F4;
+  --color-primary-mid: #BEEBE9;
+  --color-on-primary: #ffffff;
+  --color-azure: var(--blue);
+  --color-hairline: var(--line);
+  --color-hairline-strong: var(--line);
+  --color-teal: var(--accent);
+  --color-teal-deep: var(--accent-deep);
+  --color-ink-soft: var(--text-soft);
+  --color-ink-muted: var(--text-muted);
+  --color-ink-line: var(--line);
+
+  /* Legacy names from earlier passes. */
+  --ink: var(--text); --body: var(--text-soft); --muted: var(--text-muted);
+  --surface: #FFFFFF; --border: var(--line); --bg-page: #FFFFFF;
+  --bg-tint-2: var(--bg-tint);
+  --atm-teal: linear-gradient(180deg,#FFFFFF,#F2FBFB,#FFFFFF);
+  --atm-cyan: linear-gradient(180deg,#FFFFFF,#F1FAFC,#FFFFFF);
+  --atm-blue: linear-gradient(180deg,#FFFFFF,#F3F8FD,#FFFFFF);
+  --atm-indigo: linear-gradient(180deg,#FFFFFF,#F6F6FD,#FFFFFF);
+  --wash-sky: var(--bg-cool); --wash-aqua: var(--bg-tint);
+  --wash-lavender: var(--bg-cool); --wash-sky-aqua: var(--bg-tint);
+  --brand-wash-sky: var(--bg-cool); --brand-wash-teal: var(--bg-tint);
+  --brand-cta-gradient: var(--bg-tint);
+  --tint-offwhite: var(--bg-cool); --tint-sky: var(--bg-tint);
+  --tint-aqua: var(--bg-tint); --tint-lavender: var(--bg-cool);
+  --tint-bluegray: var(--bg-cool);
+  --navy: var(--text); --navy-400: var(--text-soft); --navy-300: var(--text-muted);
+  --navy-200: #BCC9CE; --navy-100: #DCE7E9; --navy-50: #F0F1F3;
+  --teal: var(--accent); --teal-deep: var(--accent-deep); --teal-500: var(--accent);
+  --teal-700: var(--accent-deep); --teal-100: #DEF5F4; --teal-200: #BEEBE9;
+  --teal-50: var(--bg-tint); --teal-tint: var(--bg-tint); --tint-2: var(--bg-cool);
+  --brand-navy: var(--text); --brand-navy-400: var(--text-soft);
+  --brand-navy-200: var(--text-muted); --brand-navy-100: #DCE7E9;
+  --brand-navy-50: #F0F1F3; --brand-teal: var(--accent);
+  --brand-teal-600: var(--accent-deep); --brand-teal-300: #94DEDB;
+  --brand-teal-100: #DEF5F4; --brand-teal-50: var(--bg-tint);
+  --brand-sky: var(--blue); --brand-sky-100: #DFF2F9; --brand-sky-50: var(--bg-cool);
+  --brand-violet: var(--indigo); --brand-violet-100: #E8E9F9;
+  --brand-border: var(--line); --brand-text-gradient: var(--icon-gradient);
+  --brand-orbs: none; --brand-orbs-flipped: none;
+  --surface-1: #FFFFFF; --surface-2: var(--bg-cool); --surface-3: var(--bg-tint);
+  --line-strong: #DCE7E9;
+}
+
+/* The environment. */
+html {
+  background: var(--page);
+  background-image: var(--page-wash);
+  background-attachment: fixed;
+}
+body { background: transparent; color: var(--text-soft); }
+
+/* ---------------------------------------------------------------------------
+   The hero screen.
+
+   One large panel that reads as a premium display. Its edge is a hairline
+   gradient in the logo icon's own hues, drawn with the padding-box mask trick
+   because a plain `border` cannot carry a gradient. Inside it, a second
+   hairline sits a few pixels in as the thin inner frame. The ground is soft
+   glass: near-white, lit warm-teal from the top-left and violet from the
+   bottom-right at very low strength, so the panel has light without tint.
+   --------------------------------------------------------------------------- */
+
+.hero-screen {
+  position: relative;
+  isolation: isolate;
+  border-radius: 24px;
+  background:
+    radial-gradient(120% 96% at 8% 0%, rgb(30 185 183 / 0.09), transparent 58%),
+    radial-gradient(110% 92% at 100% 100%, rgb(93 100 211 / 0.09), transparent 60%),
+    linear-gradient(180deg, #FFFFFF 0%, #FCFEFE 100%);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.9),
+    0 2px 6px -3px rgb(9 24 56 / 0.06),
+    0 44px 90px -56px rgb(9 24 56 / 0.30),
+    0 18px 60px -44px rgb(21 150 210 / 0.35);
+}
+@media (min-width: 640px) { .hero-screen { border-radius: 30px; } }
+@media (min-width: 1024px) { .hero-screen { border-radius: 40px; } }
+
+/* The gradient hairline. A 1px ring: paint the gradient, then knock the
+   interior out of it so only the border band survives. */
+.hero-screen__edge {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: inherit;
+  padding: 1px;
+  pointer-events: none;
+  background: linear-gradient(
+    138deg,
+    rgb(30 185 183 / 0.55) 0%,
+    rgb(11 176 198 / 0.34) 30%,
+    rgb(21 150 210 / 0.26) 60%,
+    rgb(93 100 211 / 0.50) 100%
+  );
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite: exclude;
+}
+
+/* The thin inner frame. */
+.hero-screen__frame {
+  position: absolute;
+  inset: 10px;
+  z-index: 1;
+  border: 1px solid rgb(9 24 56 / 0.045);
+  border-radius: 16px;
+  pointer-events: none;
+}
+@media (min-width: 640px) { .hero-screen__frame { inset: 12px; border-radius: 20px; } }
+@media (min-width: 1024px) { .hero-screen__frame { inset: 16px; border-radius: 26px; } }
+
+/* The second headline line, carrying the icon gradient. Applied to an inline
+   span, never to a flex container — `background-clip: text` paints nothing
+   when the box has no text of its own to clip to. */
+.hero-screen__accent {
+  background: var(--icon-gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* The light the panel sits in. Sized and blurred so it reads as atmosphere
+   behind the screen, never as a visible shape. */
+.hero-aura {
+  position: absolute;
+  inset: 4% -10% auto;
+  z-index: 0;
+  height: 78%;
+  pointer-events: none;
+  filter: blur(72px);
+  opacity: 0.85;
+  background:
+    radial-gradient(38% 54% at 18% 34%, rgb(30 185 183 / 0.30), transparent 72%),
+    radial-gradient(40% 52% at 74% 20%, rgb(21 150 210 / 0.24), transparent 72%),
+    radial-gradient(36% 50% at 56% 92%, rgb(93 100 211 / 0.20), transparent 72%);
+}
+@media (min-width: 1024px) { .hero-aura { filter: blur(96px); } }
+
+/* ---------------------------------------------------------------------------
+   Buttons.
+
+   Restored to the site's own original tokens after an intermediate pass
+   replaced this block with undefined ones (--brand / --border / --ease never
+   existed anywhere in this file, which is why every button on the site went
+   invisible — a filled button with no background). Primary is a flat fill in
+   --accent (#1EB9B7, unchanged); secondary is a hairline pill in --line
+   (#E3EDEE) over --text. No gloss/glare/press-dip layer is reproduced here —
+   an earlier pass deleted that CSS before it had been read in full, so its
+   literal keyframes are not recoverable; this restores the plain filled /
+   outlined pill exactly as our reference recording shows it.
+   --------------------------------------------------------------------------- */
+.btn-glossy {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 3rem;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #FFFFFF;
+  font-family: var(--font-sans);
+  font-weight: 600;
+  line-height: 1.2;
+  box-shadow: none;
+  transition: background-color 0.25s ease, border-color 0.25s ease, color 0.25s ease;
+}
+.btn-glossy:hover {
+  background: var(--accent-deep);
+  border-color: transparent;
+  transform: none;
+}
+.btn-glossy--secondary {
+  background: #FFFFFF;
+  border-color: var(--line);
+  color: var(--text);
+}
+.btn-glossy--secondary:hover {
+  background: #FFFFFF;
+  border-color: var(--accent);
+  color: var(--text);
+}
+.btn-glossy__wrap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 100%;
+}
+.btn-glossy__arrow { display: inline-flex; }
+
+/* "Explore SkinTrix360" only — a solid fill that wipes left-to-right over
+   the label on hover via clip-path: a hard geometric clip, not a gradient
+   or opacity fade, so every pixel the wipe has passed is the plain,
+   fully-opaque glyph colour underneath — never a blended or partial tone.
+   The overlay is a real duplicate of the label text (via attr()), painted
+   solid and clipped to nothing at rest, revealed left-to-right on hover. */
+.explore-wipe .btn-glossy__label {
+  position: relative;
+  display: inline-block;
+  color: var(--color-ink-soft);
+}
+
+.explore-wipe .btn-glossy__label::after {
+  content: attr(data-label);
+  position: absolute;
+  inset: 0;
+  color: #111114;
+  white-space: nowrap;
+  clip-path: inset(0 100% 0 0);
+  transition: clip-path 0.55s cubic-bezier(0.65, 0, 0.35, 1);
+  pointer-events: none;
+}
+
+.explore-wipe:hover .btn-glossy__label::after {
+  clip-path: inset(0 0 0 0);
+}
+
+/* ---------------------------------------------------------------------------
+   Footer scroll-zoom support.
+
+   Two rules only, both here rather than in Navbar/Footer so the zoom needs no
+   edits to components outside its own file.
+   --------------------------------------------------------------------------- */
+
+/* Past the halfway point the expanding card is under the fixed navbar, so the
+   nav sits on teal and has to flip to the on-card colour to stay readable.
+   The attribute is set on <html> by the footer's scroll progress. */
+[data-on-card] header {
+  color: #ffffff;
+}
+[data-on-card] header .btn-glossy {
+  color: #ffffff;
+}
+[data-on-card] header,
+[data-on-card] header * {
+  transition: color 0.3s var(--ease-out-expo);
+}
+
+/* The nav condenses to a translucent white bar on scroll. Over the card that
+   bar turns pale teal and white nav text on it fails contrast, so while the
+   card owns the viewport the bar drops out and the text sits directly on the
+   card gradient instead. */
+[data-on-card] header > div {
+  background-color: transparent !important;
+  backdrop-filter: none !important;
+}
+
+/* A keyboard user can reach the footer links before the card has opened.
+   Tabbing into a block held at opacity 0 would leave the focus ring invisible,
+   so focus inside it forces the revealed state. */
+.footer-reveal:focus-within {
+  opacity: 1 !important;
+  transform: none !important;
+}
