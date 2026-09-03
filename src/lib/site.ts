@@ -4,7 +4,11 @@ export const SITE = {
   /** Verified live at time of writing. */
   appStoreUrl: 'https://apps.apple.com/tr/app/skintrix-360/id6761331748',
   playStoreUrl: 'https://play.google.com/store/apps/details?id=com.skintrix',
-  privacyUrl: 'https://skintrix360.com/privacy-policy',
+  /* Root-relative, not absolute. This is a real route on this site now
+     (`src/pages/PrivacyPolicy.tsx`), so an absolute URL would send visitors out
+     to the network and back for a page already loaded — and would break the
+     link entirely on any preview or staging host. */
+  privacyUrl: '/privacy-policy',
   contactUrl: 'https://skintrix360.com/contact',
 } as const
 
@@ -30,19 +34,19 @@ export const HERO_CLOSE = {
 
 export const WHAT = {
   headline: ['Your skin tells', 'a story.'],
-  lead: 'SkinTrix helps you read it. A simple facial image can reveal patterns that are difficult to track by eye. SkinTrix 360 uses AI-powered computer vision to analyze your skin, identify key characteristics, and create a clear picture of your skin health.',
+  lead: 'SkinTrix helps you read it. A single photograph reveals patterns the eye cannot track — and turns them into a clear picture of your skin health.',
   points: [
     {
       title: 'Analyze',
-      body: 'Understand your skin with AI-powered analysis. Get a clearer picture of your skin with intelligent insights designed around your everyday skincare.',
+      body: 'Understand your skin with AI-powered analysis and get a clearer picture of your skin health.',
     },
     {
       title: 'Track',
-      body: 'Monitor how your skin changes over time. Keep your progress in view and discover meaningful changes with personalized insights.',
+      body: 'Monitor how your skin changes over time, and keep your progress in clear, meaningful view.',
     },
     {
       title: 'Understand',
-      body: 'Turn your skin data into meaningful insights. Build a clearer understanding of your skin and make more informed skincare decisions.',
+      body: 'Turn your skin data into clear insights that inform better, more confident skincare decisions.',
     },
   ],
 } as const

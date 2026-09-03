@@ -215,13 +215,41 @@ const CARD_GROUPS: CardDef[][] = [
   ],
 ]
 
-/** One card set at a time — stage 0 is the clean intro, 4 is the close. */
+/**
+ * How many states the narrative has. Derived, not typed: the three card
+ * groups, plus the opening headline and the closing statement.
+ */
+const STAGE_COUNT = CARD_GROUPS.length + 2
+
+/**
+ * Scroll budget per stage, as a fraction of viewport height.
+ *
+ * This is the fix. The hero used to be a `sticky` child inside a section
+ * 120svh taller than itself, so the ENTIRE narrative — five states — shared
+ * 120% of one viewport: about 216px per stage at a 900px window. A flick
+ * covers that in a single frame, which is why the data never appeared.
+ */
+const STAGE_BUDGET_VH = 0.9
+/** Shorter on a phone, where 90vh a stage is a very long freeze. */
+const STAGE_BUDGET_VH_NARROW = 0.65
+
+/**
+ * One card set at a time — stage 0 is the clean intro, STAGE_COUNT-1 the close.
+ *
+ * Even bands of 1/N, so no stage can be shorter than any other. The stage
+ * switches at the START of its band and then HOLDS for the rest of it, which
+ * is what makes a fast flick land on something readable: the opacity/transform
+ * transition on the cards is a fixed 0.4s CSS transition, so it completes
+ * inside roughly the first quarter of a band (about 200px of scroll at
+ * desktop) and the remaining three quarters are a hold at full opacity.
+ *
+ * The transition is deliberately NOT scrubbed to scroll position. Scrubbed
+ * opacity means stopping mid-band leaves a card half-faded — and stopping
+ * mid-stage to read it is the entire point of the budget.
+ */
 function stageFromProgress(p: number) {
-  if (p < 0.16) return 0
-  if (p < 0.38) return 1
-  if (p < 0.6) return 2
-  if (p < 0.82) return 3
-  return 4
+  const band = Math.floor(p * STAGE_COUNT)
+  return Math.min(STAGE_COUNT - 1, Math.max(0, band))
 }
 
 /**
@@ -302,14 +330,106 @@ function ScrollHero() {
   const trackRef = useRef<HTMLElement>(null)
   const scale = useCanvasScale(trackRef, CANVAS_W)
   const viewportH = useViewportHeight()
-  const { scrollYProgress } = useScroll({ target: trackRef, offset: ['start start', 'end end'] })
-  const p = useSpring(scrollYProgress, { stiffness: 300, damping: 48, mass: 0.3 })
-
   const [stage, setStage] = useState(0)
-  useMotionValueEvent(p, 'change', (v) => {
-    const next = stageFromProgress(v)
-    setStage((prev) => (prev === next ? prev : next))
-  })
+
+  /**
+   * The pin, and the scroll budget that makes the stages unskippable.
+   *
+   * WHY GSAP AND NOT THE STICKY IT REPLACES
+   * A `sticky` child holds still for exactly (parent height − child height) of
+   * scroll, so the budget was a height calculation tangled up with the canvas
+   * scale. ScrollTrigger's `end: '+=' + n` states the budget directly, in
+   * viewport units, and recomputes it on resize.
+   *
+   * WHY A PROXY OBJECT
+   * The stages are React state, so there is nothing for GSAP to tween. It
+   * tweens `progress.p` from 0 to 1 instead and the component reads it — which
+   * is what lets `scrub: 0.5` apply its smoothing to the value the stage is
+   * derived FROM. A bare `ScrollTrigger.create` has no `scrub` to give.
+   *
+   * LENIS
+   * Already wired, in `useSmoothScroll`: `lenis.on('scroll',
+   * ScrollTrigger.update)` plus `gsap.ticker.add` driving `lenis.raf` with
+   * `lagSmoothing(0)`. No `scrollerProxy` is needed here and adding one would
+   * break it — Lenis is in its default window mode, where it writes real
+   * `scrollTop` rather than transforming a wrapper, so ScrollTrigger's own
+   * reading of window scroll is already the true position. `pinType` stays at
+   * its default `fixed` for the same reason.
+   *
+   * `anticipatePin: 1` is for the flick specifically: at high velocity the pin
+   * can otherwise engage a frame late and show a jump.
+   */
+  useEffect(() => {
+    const el = trackRef.current
+    if (!el) return
+
+    let disposed = false
+    let mm: ReturnType<typeof import('gsap').gsap.matchMedia> | undefined
+
+    void import('@/lib/gsap').then(({ gsap }) => {
+      if (disposed) return
+      mm = gsap.matchMedia()
+
+      /* Three conditions covering every case, because `matchMedia` with a
+         conditions OBJECT only runs the callback when at least one of them
+         matches — a gap here means the hero silently never animates. */
+      mm.add(
+        {
+          wide: '(min-width: 769px) and (prefers-reduced-motion: no-preference)',
+          narrow: '(max-width: 768px) and (prefers-reduced-motion: no-preference)',
+          reduce: '(prefers-reduced-motion: reduce)',
+        },
+        (ctx) => {
+          const { narrow, reduce } = ctx.conditions as Record<string, boolean>
+
+          /* No pin at all, and the opening headline rather than the close:
+             stage 0 is the state that carries the h1, the lead and both
+             calls to action, so it is the one that still reads as a hero
+             when nothing moves. */
+          if (reduce) {
+            setStage(0)
+            return
+          }
+
+          const perStage = narrow ? STAGE_BUDGET_VH_NARROW : STAGE_BUDGET_VH
+          const progress = { p: 0 }
+
+          const tween = gsap.to(progress, {
+            p: 1,
+            ease: 'none',
+            scrollTrigger: {
+              trigger: el,
+              start: 'top top',
+              /* A function so `invalidateOnRefresh` can re-read the viewport
+                 on resize instead of freezing the first measurement. */
+              end: () => '+=' + Math.round(STAGE_COUNT * perStage * window.innerHeight),
+              pin: true,
+              pinSpacing: true,
+              scrub: 0.5,
+              anticipatePin: 1,
+              invalidateOnRefresh: true,
+            },
+            onUpdate: () => {
+              const next = stageFromProgress(progress.p)
+              setStage((prev) => (prev === next ? prev : next))
+            },
+          })
+
+          return () => {
+            tween.scrollTrigger?.kill()
+            tween.kill()
+          }
+        },
+      )
+    })
+
+    return () => {
+      disposed = true
+      /* Reverts the pin wrapper GSAP inserted, so a route change or a
+         breakpoint flip cannot leave an orphaned pin-spacer behind. */
+      mm?.revert()
+    }
+  }, [])
 
   const stageHeight = PIN_H * scale
   const shift = stage === 0 ? 0 : restingShift(scale, viewportH)
@@ -326,8 +446,16 @@ function ScrollHero() {
       id="top"
       ref={trackRef}
       className="relative"
+      /* The current stage, published so the pin can be verified from outside
+         — the stages are otherwise only observable as opacities on a dozen
+         separate nodes. Reflects state; nothing reads it back. */
+      data-hero-stage={stage}
+      /* Its own height only. The scroll budget is no longer baked into this
+         box — ScrollTrigger's pin-spacer supplies it, which is what
+         `pinSpacing: true` means: the pinned distance becomes real page
+         height, so nothing below can overlap the hero. */
       style={{
-        height: `calc(120svh + ${stageHeight + HEADER_CLEARANCE}px)`,
+        height: stageHeight + HEADER_CLEARANCE,
         background: 'var(--color-canvas)',
       }}
     >
@@ -337,7 +465,9 @@ function ScrollHero() {
         // about its own midpoint only lands flush when that midpoint sits on
         // the container midpoint. Laid out flush-left it drifted right by
         // (CANVAS_W/2)(1-scale) — 200px at desktop, right off-screen on a phone.
-        className="sticky top-0 flex justify-center overflow-hidden"
+        /* `sticky` is gone: GSAP pins the section above, and two pinning
+           mechanisms on the same subtree fight each other. */
+        className="flex justify-center overflow-hidden"
         style={{ height: stageHeight + HEADER_CLEARANCE, paddingTop: HEADER_CLEARANCE }}
       >
         <section
@@ -446,7 +576,7 @@ function ScrollHero() {
               transition: 'opacity 0.45s ease, transform 0.45s ease',
             }}
           >
-            <h2 className="text-[76px] leading-[1.04] tracking-[-1.4px]" style={{ fontWeight: 400, margin: '0 0 16px 0' }}>
+            <h2 className="text-[76px] leading-[1.04] tracking-[-1.4px]" style={{ fontWeight: 600, margin: '0 0 16px 0' }}>
               {HERO_CLOSE.headline[0]} {HERO_CLOSE.headline[1]}
             </h2>
             <p className="text-[19px] leading-[1.6]" style={{ color: 'var(--color-ink-soft)', maxWidth: 540, margin: '0 0 26px 0' }}>
@@ -466,7 +596,7 @@ function ScrollHero() {
 
 function HeroHeading() {
   return (
-    <h1 className="text-[76px] leading-[1.04] tracking-[-1.4px]" style={{ fontWeight: 400, margin: '0 0 4px 0' }}>
+    <h1 className="text-[76px] leading-[1.04] tracking-[-1.4px]" style={{ fontWeight: 600, margin: '0 0 4px 0' }}>
       {HERO.headline[0]}<br />{HERO.headline[1]}
     </h1>
   )
@@ -558,7 +688,7 @@ export function TabletHero() {
             className="absolute inset-x-0 top-11 z-[9] flex flex-col items-center px-8 text-center"
             style={{ opacity: opIntro, pointerEvents: stage === 0 ? 'auto' : 'none', transition: 'opacity 0.4s ease' }}
           >
-            <h1 className="text-[44px] leading-[1.08] tracking-[-1px]" style={{ fontWeight: 400, margin: '0 0 16px 0' }}>
+            <h1 className="text-[44px] leading-[1.08] tracking-[-1px]" style={{ fontWeight: 600, margin: '0 0 16px 0' }}>
               {HERO.headline[0]}<br />{HERO.headline[1]}
             </h1>
             <p className="mb-0 text-[16px] leading-[1.6]" style={{ color: 'var(--color-ink-soft)', maxWidth: 460, marginBottom: 22 }}>
@@ -631,7 +761,7 @@ export function TabletHero() {
               transition: 'opacity 0.45s ease, transform 0.45s ease',
             }}
           >
-            <h2 className="text-[44px] leading-[1.08] tracking-[-1px]" style={{ fontWeight: 400, margin: '0 0 14px 0' }}>
+            <h2 className="text-[44px] leading-[1.08] tracking-[-1px]" style={{ fontWeight: 600, margin: '0 0 14px 0' }}>
               {HERO_CLOSE.headline[0]} {HERO_CLOSE.headline[1]}
             </h2>
             <p className="text-[16px] leading-[1.6]" style={{ color: 'var(--color-ink-soft)', maxWidth: 480, margin: '0 0 22px 0' }}>
@@ -914,7 +1044,11 @@ function SimpleHero() {
     <section
       id="top"
       className="relative isolate overflow-hidden pt-24 pb-0 md:pt-28"
-      style={{ background: 'var(--surface)', color: 'var(--color-ink)' }}
+      /* `--color-canvas`, not `--surface`. `--surface` is #FFFFFF, so this —
+         the hero that renders at ≤768px — was the one section on the site
+         still painting pure white, while its desktop and tablet counterparts
+         both used the canvas token. It is the page ground, not a card. */
+      style={{ background: 'var(--color-canvas)', color: 'var(--color-ink)' }}
     >
       <style>{FLOATY_KEYFRAMES}</style>
 
@@ -922,7 +1056,7 @@ function SimpleHero() {
         <Reveal>
           <h1
             className="mx-auto max-w-[18ch] text-[clamp(2.15rem,1.3rem+2.4vw,3.5rem)] leading-[1.06] tracking-[-0.03em]"
-            style={{ fontWeight: 400 }}
+            style={{ fontWeight: 600 }}
           >
             {HERO.headline[0]}
             <br />
@@ -1006,7 +1140,7 @@ function SimpleHero() {
       <Reveal className="shell mt-20 pb-20 text-center">
         <h2
           className="mx-auto max-w-[16ch] text-[clamp(1.85rem,1.2rem+1.9vw,2.75rem)] leading-[1.1] tracking-[-0.03em]"
-          style={{ fontWeight: 400 }}
+          style={{ fontWeight: 600 }}
         >
           {HERO_CLOSE.headline[0]} {HERO_CLOSE.headline[1]}
         </h2>

@@ -1,187 +1,450 @@
-import { SiApple, SiGoogleplay } from 'react-icons/si'
-import { LuArrowRight } from 'react-icons/lu'
+import type { ComponentType } from 'react'
+import { FaFacebookF, FaInstagram, FaSnapchat, FaTiktok, FaXTwitter } from 'react-icons/fa6'
 
+import { FlickeringGrid } from '@/components/ui/FlickeringGrid'
 import { Logo } from '@/components/ui/Logo'
+import { useMediaQuery } from '@/hooks/useMediaQuery'
 import { SITE } from '@/lib/site'
 
 /**
- * Three panels: the brand, the way around, and the way in.
+ * Footer — one centred column over a flickering wordmark, revealed by the page
+ * scrolling over it.
  *
- * Separation comes from the panels' own grounds rather than outlines, so this
- * stays borderless like the rest of the page. The accent panel is teal deep
- * enough to carry white body text — the brand's mid teal only reaches 2.3:1
- * on white, which is fine for a fill and not for reading against.
+ * THE REVEAL
+ * ----------
+ * Three nested pieces, none of them optional:
+ *
+ *   <footer h=--footer-h clip-path>   the real height. This is the scroll
+ *                                     distance reserved for the reveal; the
+ *                                     fixed child contributes nothing to
+ *                                     layout, so without a height here the
+ *                                     footer would occupy no space at all and
+ *                                     there would be nothing to scroll past.
+ *     <div fixed bottom-0 h=--footer-h>  pinned to the viewport, which is why
+ *                                        the footer holds still while the page
+ *                                        slides over it.
+ *       <div sticky top=calc(100vh - --footer-h) overflow-y-auto>
+ *
+ * The `clip-path` is what confines the fixed child to the footer's own box.
+ * `overflow` cannot do it — overflow clipping does not apply to a fixed
+ * descendant whose containing block is the viewport — but `clip-path` clips its
+ * whole subtree unconditionally, while (unlike `transform` or `filter`) NOT
+ * becoming a containing block itself. That asymmetry is the entire trick.
+ * Remove the clip-path and the footer paints over the whole page.
+ *
+ * The two heights must stay identical, which is why `--footer-h` is declared
+ * once on the footer element and read by both. A taller reserve than the fixed
+ * child leaves a gap at the end of the reveal; a shorter one ends it early.
+ *
+ * The reserve is measured against the real content height at every breakpoint
+ * — the inner `overflow-y-auto` is a safety net for a viewport shorter than
+ * the reserve, not the plan. Anything that makes this column taller has to be
+ * paid for in `--footer-h`, or the clip-path cuts the bottom of the wordmark.
+ *
+ * BELOW 769px THE REVEAL IS OFF — plain static footer, no clip-path, no fixed
+ * wrapper. Two measured reasons, not a preference:
+ *
+ *   1. The content does not fit a reserve that size. The column is taller at
+ *      narrow widths, where the grid gains a third row and the legal line
+ *      wraps.
+ *   2. A reserve that approaches the phone's visible viewport height makes the
+ *      reveal's completion depend on the browser toolbars. `100vh` is the
+ *      LARGE viewport (toolbars hidden) while the fixed child's `bottom: 0`
+ *      tracks the small one, so on a 667px device showing ~553px the footer's
+ *      top — the logo — would sit permanently off screen.
+ *
+ * Static below 769px has neither problem: the footer is exactly as tall as its
+ * content, and nothing is pinned, so no toolbar can move it.
+ *
+ * `FaSnapchatGhost` does not exist in react-icons/fa6 — Font Awesome renamed
+ * it to `FaSnapchat` in v6. Same glyph, already installed.
  */
 
-/** Where the middle panel points. */
-const LINKS = [
-  { label: 'How It Works', href: '#how-it-works' },
-  { label: 'My Skincare Plan', href: '#skin-plan' },
-  { label: 'Consultation', href: '#consultation' },
-  { label: 'Plans', href: '#pricing' },
-]
+const C = {
+  /* No text ink here any more. The footer's content used to be one flat
+     #0D1839 with a #1CBAB5 tagline; both are tokens now. The tagline is
+     `--text-accent` (#1EB9B7, 2 points off its old #1CBAB5); everything else
+     — social labels, their icons, the copyright and the legal links — is
+     `--text-heading` (#1A2A5C), so the footer reads as one ink again rather
+     than the body/muted split the scale first put it through.
 
-/** The legal row, which the reference keeps out of the panels. */
-const LEGAL = [
-  { label: 'Privacy Policy', href: SITE.privacyUrl },
-  { label: 'Contact', href: SITE.contactUrl },
-]
+     The icons carry no colour of their own: they inherit `currentColor` from
+     the anchor, which is what keeps a glyph and its label the same value and
+     lets one hover turn the whole cell teal.
 
-function StoreBadge({
-  href,
-  icon,
-  kicker,
-  name,
-}: {
+     #0D1839 survives below for a drawn GLYPH only, never for type. */
+  /** The `+` join between social cells — an SVG stroke, not text. */
+  ink: '#0D1839',
+  /** Focus rings. */
+  teal: '#1EB9B7',
+  /* The page ground — the footer continues the page surface rather than
+     sitting on a card. The canvas overlay below fades to this EXACT value: a
+     gradient landing on any other colour draws a visible seam right where the
+     dots begin. */
+  ground: '#F5F6FD',
+  hair: '#E2E5F2',
+} as const
+
+type Social = {
+  label: string
   href: string
-  icon: React.ReactNode
-  kicker: string
-  name: string
-}) {
+  Icon: ComponentType<{ className?: string; 'aria-hidden'?: boolean }>
+}
+
+const SOCIALS: Social[] = [
+  { label: 'Instagram', href: 'https://www.instagram.com/skintrix360.ai/', Icon: FaInstagram },
+  { label: 'TikTok', href: 'https://www.tiktok.com/@skintrix360.ai', Icon: FaTiktok },
+  {
+    label: 'Facebook',
+    href: 'https://www.facebook.com/profile.php?id=61590908840476',
+    Icon: FaFacebookF,
+  },
+  { label: 'Snapchat', href: 'https://www.snapchat.com/@skintrix360', Icon: FaSnapchat },
+  { label: 'X', href: 'https://x.com/skintrix360', Icon: FaXTwitter },
+]
+
+const LEGAL = [
+  { label: 'Delete account', href: '/delete-account' },
+  { label: 'Privacy Policy', href: SITE.privacyUrl },
+]
+
+/* ===========================================================================
+   The cell grid, derived rather than hard-coded
+   ===========================================================================
+
+   Five platforms plus one deliberately empty box — six cells, which divides
+   evenly into both column counts: 3 × 2 rows above 769px, 2 × 3 rows below.
+   No partial row, so the grid is always a clean rectangle with no dead track.
+
+   Every per-cell decision below is COMPUTED from (row, col, columnCount).
+   Hard-coding indices would silently be wrong at one of the two counts: cell 3
+   ends a row at two columns but sits mid-row at three, and the interior
+   intersections move with it. */
+
+const CELL_COUNT = 6
+
+function cellFlags(i: number, cols: number) {
+  const row = Math.floor(i / cols)
+  const col = i % cols
+  const lastRow = Math.floor((CELL_COUNT - 1) / cols)
+
+  return {
+    /** Checker by POSITION, so it stays a checker when the grid reflows. */
+    tint: (row + col) % 2 === 0,
+    /** Every cell except the last of its row. */
+    borderRight: col < cols - 1,
+    /** Every cell except those in the final row. */
+    borderBottom: row < lastRow,
+    /** A plus only where a cell exists BOTH to the right and below — i.e. a
+        genuine crossing of two interior dividers, never an outer edge. */
+    plus: col < cols - 1 && i + cols < CELL_COUNT,
+  }
+}
+
+/**
+ * Turns the two column counts into one class string per cell.
+ *
+ * Only the differences get a `min-[769px]:` variant, so the base classes are
+ * the ≤768px (two-column) truth and the variants override just what changes.
+ * Every candidate appears here as a literal string, which is what lets
+ * Tailwind's scanner find them.
+ */
+function edgeClasses(i: number) {
+  const sm = cellFlags(i, 2)
+  const md = cellFlags(i, 3)
+  const cls: string[] = []
+
+  if (sm.borderRight) cls.push('border-r')
+  if (md.borderRight !== sm.borderRight)
+    cls.push(md.borderRight ? 'min-[769px]:border-r' : 'min-[769px]:border-r-0')
+
+  if (sm.borderBottom) cls.push('border-b')
+  if (md.borderBottom !== sm.borderBottom)
+    cls.push(md.borderBottom ? 'min-[769px]:border-b' : 'min-[769px]:border-b-0')
+
+  if (sm.tint) cls.push('bg-[#EDEFFA]')
+  if (md.tint !== sm.tint)
+    cls.push(md.tint ? 'min-[769px]:bg-[#EDEFFA]' : 'min-[769px]:bg-transparent')
+
+  return cls.join(' ')
+}
+
+/** Which breakpoints show this cell's plus, if any. */
+function plusClass(i: number) {
+  const sm = cellFlags(i, 2).plus
+  const md = cellFlags(i, 3).plus
+  if (sm && md) return ''
+  if (sm) return 'min-[769px]:hidden'
+  if (md) return 'hidden min-[769px]:block'
+  return null
+}
+
+/**
+ * The corner glyph. Inline SVG — this repo has no icon library with a plus,
+ * and the reference's lucide/shadcn dependency is not going in for one shape.
+ *
+ * Offset by half its own size, so its centre lands ON the intersection.
+ */
+function Plus() {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke={C.ink}
+      strokeWidth="1"
+      className="pointer-events-none absolute right-[-12px] bottom-[-12px] z-10 h-6 w-6"
+    >
+      <path d="M12 4v16M4 12h16" />
+    </svg>
+  )
+}
+
+/**
+ * 28ms per character, not the 55ms the short line used.
+ *
+ * The tagline is 57 characters — roughly double. At 55ms the wave would need
+ * 3.14s to travel from the first letter to the last, inside a 2.6s cycle: the
+ * head would restart before the tail ever lit, so the end of the sentence
+ * would sit permanently dim. 57 × 28ms = 1.60s, which finishes comfortably
+ * inside the cycle and leaves a clear dark beat before it repeats.
+ */
+const WAVE_STEP_MS = 28
+
+/**
+ * A line whose letters brighten in sequence, so a wave of light travels along
+ * it and loops. The keyframes (`wave`, beside `drift-left` / `drift-right` in
+ * `@theme`) animate opacity and nothing else, so the line can never reflow
+ * mid-cycle.
+ *
+ * Split by WORD first, then by character inside each word. A flat run of
+ * per-character spans would let the line break anywhere — mid-word — because
+ * every span is its own inline box, and this sentence is long enough to wrap.
+ * Wrapping each word in `white-space: nowrap` keeps words intact while leaving
+ * the real spaces between them as break opportunities. The delay counter runs
+ * continuously across words (and spends a step on each space), so the wave
+ * crosses the whole sentence at one even pace rather than restarting per word.
+ *
+ * The split is presentational: the per-letter spans are hidden from assistive
+ * tech and the unbroken string is exposed once, so a screen reader reads a
+ * sentence rather than fifty-odd letters.
+ *
+ * Letters carry no colour of their own — they inherit `currentColor`, so the
+ * line is whatever colour its container sets.
+ */
+function WaveText({ text }: { text: string }) {
+  const words = text.split(' ')
+  let i = 0
+
+  return (
+    <span className="inline-block">
+      <span className="sr-only">{text}</span>
+      <span aria-hidden="true">
+        {words.map((word, w) => {
+          const chars = word.split('').map((ch) => (
+            <span
+              key={i}
+              className="animate-wave motion-reduce:animate-none motion-reduce:opacity-100"
+              style={{ animationDelay: `${i++ * WAVE_STEP_MS}ms` }}
+            >
+              {ch}
+            </span>
+          ))
+          /* The space is not animated — it has nothing to show — but it still
+             advances the counter, so the pace does not stutter at word ends. */
+          if (w < words.length - 1) i++
+
+          return (
+            <span key={word + w}>
+              <span className="whitespace-nowrap">{chars}</span>
+              {w < words.length - 1 ? ' ' : null}
+            </span>
+          )
+        })}
+      </span>
+    </span>
+  )
+}
+
+function LegalLink({ label, href }: { label: string; href: string }) {
   return (
     <a
       href={href}
-      target="_blank"
-      rel="noreferrer noopener"
-      aria-label={`${kicker} ${name}`}
-      className="flex items-center gap-2.5 rounded-lg bg-[rgb(12,16,20)] px-3.5 py-2 text-white transition-opacity duration-300 hover:opacity-85 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--teal)]"
+      className="ink-heading ink-hover-accent transition-colors duration-150 hover:underline hover:underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2"
+      style={{ outlineColor: C.teal }}
     >
-      <span aria-hidden className="text-[1.125rem] leading-none">
-        {icon}
-      </span>
-      <span className="text-left leading-tight">
-        <span className="block text-[0.5rem] font-semibold tracking-[0.12em] text-white/60 uppercase">
-          {kicker}
-        </span>
-        <span className="block text-[0.8125rem] font-semibold tracking-tight">{name}</span>
-      </span>
+      {label}
     </a>
   )
 }
 
 export function Footer() {
+  /* The band's type size is a canvas argument, not CSS, so its breakpoints
+     have to be read in JS. Four tiers, largest first. */
+  const xl = useMediaQuery('(min-width: 1281px)')
+  const lg = useMediaQuery('(min-width: 1025px)')
+  const md = useMediaQuery('(min-width: 769px)')
+  const wordmarkSize = xl ? 190 : lg ? 150 : md ? 100 : 56
+
   return (
-    <footer className="shell pt-10 pb-10">
-      <div className="grid gap-4 lg:grid-cols-[1.35fr_0.85fr_1.2fr]">
-        {/* ── Brand */}
-        <div
-          className="flex flex-col items-center justify-center rounded-[1.25rem] px-8 py-12 text-center"
-          style={{ background: 'var(--bg)' }}
-        >
-          <a href="#top" aria-label={`${SITE.name} home`}>
-            <Logo className="h-9" />
-          </a>
-          <p className="mt-5 text-[0.9375rem] leading-[1.7]" style={{ color: 'var(--body)' }}>
-            AI-powered skin intelligence, made personal.
-          </p>
-          <div className="mt-6 flex flex-wrap items-center justify-center gap-2.5">
-            <StoreBadge
-              href={SITE.playStoreUrl}
-              icon={<SiGoogleplay />}
-              kicker="Get it on"
-              name="Google Play"
-            />
-            <StoreBadge
-              href={SITE.appStoreUrl}
-              icon={<SiApple />}
-              kicker="Download on the"
-              name="App Store"
-            />
-          </div>
-        </div>
+    <footer
+      /* `--footer-h` is measured, not chosen, and lives here and nowhere else
+         — both heights below read it and they must never diverge.
 
-        {/* ── Links */}
-        <nav
-          aria-label="Footer"
-          className="flex flex-col items-center justify-between rounded-[1.25rem] px-6 py-12 text-center"
-          style={{ background: 'var(--bg-tint)' }}
-        >
-          <ul className="flex flex-col gap-3.5">
-            {LINKS.map((l) => (
-              <li key={l.label}>
-                <a
-                  href={l.href}
-                  className="text-[0.9375rem] leading-none transition-colors duration-300 hover:text-[color:var(--teal-deep)]"
-                  style={{ color: 'var(--body)' }}
-                >
-                  {l.label}
-                </a>
-              </li>
-            ))}
-          </ul>
+         The clip-path is a `min-[769px]:` arbitrary property rather than an
+         inline style so it can be switched off with the rest of the reveal;
+         the computed polygon is byte-identical to the inline version. */
+      className="relative w-full min-[769px]:h-[var(--footer-h)] min-[769px]:[--footer-h:820px] min-[769px]:[clip-path:polygon(0%_0,100%_0%,100%_100%,0_100%)] min-[1025px]:[--footer-h:860px]"
+      style={{ background: C.ground }}
+    >
+      <div
+        className="min-[769px]:fixed min-[769px]:bottom-0 min-[769px]:h-[var(--footer-h)] min-[769px]:w-full"
+        style={{ background: C.ground }}
+      >
+        <div className="min-[769px]:sticky min-[769px]:top-[calc(100vh-var(--footer-h))] min-[769px]:h-full min-[769px]:overflow-y-auto">
+          {/* `flex-[1_0_auto]` on the column, not `flex-1`: grow into any slack
+              the reserve leaves over, but never compress below the content's
+              natural height. That slack lands above the band, which keeps the
+              band flush with the very bottom edge. With the reveal off,
+              `h-full` resolves against an auto-height parent, so it means
+              nothing and the column is simply as tall as its content. */}
+          <div className="flex h-full flex-col">
+            <div className="mx-auto flex w-full max-w-[900px] flex-[1_0_auto] flex-col items-center px-6 pt-14 text-center">
+              {/* ── logo ─────────────────────────────────────────────────── */}
+              <a
+                href="/"
+                aria-label="SkinTrix 360 home"
+                className="inline-flex rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2"
+                style={{ outlineColor: C.teal }}
+              >
+                {/* `!` beats the component's own `h-9 sm:h-10`. */}
+                <Logo className="h-[38px]! min-[769px]:h-[44px]! min-[1025px]:h-[56px]!" />
+              </a>
 
-          <a
-            href="#download"
-            className="mt-10 inline-flex items-center gap-2 rounded-lg bg-[rgb(12,16,20)] px-5 py-2.5 text-[0.875rem] leading-none font-semibold text-white transition-opacity duration-300 hover:opacity-85 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--teal)]"
-          >
-            Scan Now
-          </a>
-        </nav>
+              {/* ── tagline — the wave lives here now ────────────────────
+                  The only thing in the footer that is not `--ink`. Its size and
+                  position are unchanged; what moved onto it is the per-letter
+                  animation that used to sit on a duplicate line below the
+                  legal row. */}
+              <p
+                className="type-h3 ink-accent mt-[22px] max-w-[560px]"
+              >
+                <WaveText text="AI-powered skin intelligence. No brand affiliation, ever." />
+              </p>
 
-        {/* ── The way in. Accent panel, deep enough to read white on. */}
-        <div
-          className="flex flex-col justify-between rounded-[1.25rem] px-8 py-12"
-          style={{ background: 'linear-gradient(150deg, #0F6E6D 0%, #12817F 55%, #14739B 100%)' }}
-        >
-          <div>
-            <h2 className="text-[1.375rem] leading-tight font-semibold tracking-[-0.02em] text-white">
-              Start your skin journey
-            </h2>
-            <p className="mt-3 max-w-[24rem] text-[0.875rem] leading-[1.7] text-white/75">
-              Scan your skin, see what changes, and get active-ingredient guidance built around
-              your own results.
-            </p>
+              {/* ── the social cell grid ─────────────────────────────────
+                  Left and right edges live on this container; the top and
+                  bottom are separate full-bleed hairlines. Because they are
+                  positioned against this box — which spans every row — they
+                  sit above the first row and below the last, never mid-grid. */}
+              <div
+                className="relative mx-auto mt-9 grid w-full max-w-[820px] grid-cols-2 min-[769px]:grid-cols-3"
+                style={{ borderLeft: `1px solid ${C.hair}`, borderRight: `1px solid ${C.hair}` }}
+              >
+                <div
+                  aria-hidden="true"
+                  className="pointer-events-none absolute top-[-1px] left-1/2 w-screen -translate-x-1/2"
+                  style={{ borderTop: `1px solid ${C.hair}` }}
+                />
+                <div
+                  aria-hidden="true"
+                  className="pointer-events-none absolute bottom-[-1px] left-1/2 w-screen -translate-x-1/2"
+                  style={{ borderBottom: `1px solid ${C.hair}` }}
+                />
 
-            {/* The reference puts an email capture here. There is no list or
-                backend behind this site, so this points at the app instead of
-                collecting an address it could not do anything with. */}
-            <a
-              href="#download"
-              className="mt-7 inline-flex items-center gap-2 rounded-lg bg-white px-5 py-2.5 text-[0.875rem] leading-none font-semibold transition-opacity duration-300 hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
-              style={{ color: '#0F6E6D' }}
+                {SOCIALS.map((s, i) => {
+                  const showPlus = plusClass(i)
+                  return (
+                    <div
+                      key={s.label}
+                      className={`relative flex ${edgeClasses(i)}`}
+                      style={{ borderColor: C.hair }}
+                    >
+                      <a
+                        href={s.href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label={`SkinTrix 360 on ${s.label}`}
+                        /* Fills the cell, so the whole box is the hit area. */
+                        className="ink-heading ink-hover-accent flex w-full items-center justify-center gap-2.5 px-[14px] py-6 transition-colors duration-150 focus-visible:outline-2 focus-visible:-outline-offset-2 min-[769px]:px-5 min-[769px]:py-8"
+                        style={{ outlineColor: C.teal }}
+                      >
+                        {/* Neither the icon nor the name carries a colour of
+                            its own — both inherit `currentColor` from the
+                            anchor, which is what makes ONE hover handler turn
+                            the whole cell teal. */}
+                        <s.Icon
+                          aria-hidden
+                          className="h-[22px] w-[22px] shrink-0 min-[769px]:h-[26px] min-[769px]:w-[26px]"
+                        />
+                        <span className="type-lead ink-heading whitespace-nowrap">
+                          {s.label}
+                        </span>
+                      </a>
+
+                      {showPlus !== null ? (
+                        <span className={showPlus}>
+                          <Plus />
+                        </span>
+                      ) : null}
+                    </div>
+                  )
+                })}
+
+                {/* The sixth box. Empty on purpose: it keeps the grid a clean
+                    rectangle instead of leaving a ragged notch, and it carries
+                    the same borders and checker tint as a real cell so it
+                    reads as part of the structure rather than a gap. */}
+                <div
+                  aria-hidden="true"
+                  className={`relative flex ${edgeClasses(5)}`}
+                  style={{ borderColor: C.hair }}
+                />
+              </div>
+
+              {/* ── legal ────────────────────────────────────────────────── */}
+              <div className="type-small mt-10 flex flex-wrap items-center justify-center gap-x-[30px] gap-y-2">
+                {/* Literal year, as specified — not `new Date()`. */}
+                <span className="ink-heading">© 2026 SkinTrix360. All rights reserved.</span>
+                <LegalLink {...LEGAL[0]} />
+                <LegalLink {...LEGAL[1]} />
+              </div>
+            </div>
+
+            {/* ── the flickering wordmark ────────────────────────────────
+                Flush with the bottom edge — no padding under it. The overlay
+                fades the top of the field into the ground so the dots emerge
+                instead of starting on a hard line.
+
+                The gradient's stops are `rgb(245 246 253 / 0)`, not
+                `transparent`: `transparent` is transparent BLACK, and
+                interpolating from it greys the middle of the ramp into a
+                visible smudge. */}
+            <div
+              aria-hidden="true"
+              className="relative mt-[52px] h-[170px] w-full shrink-0 min-[769px]:h-[260px]"
             >
-              Get the app
-              <LuArrowRight aria-hidden className="h-4 w-4" />
-            </a>
-          </div>
-
-          <div className="mt-10 flex flex-wrap items-end justify-between gap-4">
-            <p className="text-[0.8125rem] leading-[1.6] text-white/70">
-              Questions?
-              <br />
-              <a
-                href={SITE.contactUrl}
-                target="_blank"
-                rel="noreferrer noopener"
-                className="font-semibold text-white underline underline-offset-4 hover:opacity-85"
-              >
-                Get in touch
-              </a>
-            </p>
+              <FlickeringGrid
+                squareSize={2}
+                gridGap={md ? 3 : 2}
+                flickerChance={0.1}
+                color="rgba(13, 24, 57, 1)"
+                maxOpacity={0.22}
+                glyphBoost={0.62}
+                text="SKINTRIX 360"
+                fontSize={wordmarkSize}
+                fontWeight={700}
+                letterSpacingEm={0.04}
+              />
+              <div
+                className="pointer-events-none absolute inset-0"
+                style={{
+                  background: `linear-gradient(to top, rgb(245 246 253 / 0) 0%, rgb(245 246 253 / 0) 40%, ${C.ground} 100%)`,
+                }}
+              />
+            </div>
           </div>
         </div>
-      </div>
-
-      {/* Legal, outside the panels. */}
-      <div className="mt-8 flex flex-wrap items-center justify-between gap-x-8 gap-y-3">
-        <p className="text-[0.8125rem]" style={{ color: 'var(--muted)' }}>
-          © {new Date().getFullYear()} {SITE.name}. All rights reserved.
-        </p>
-        <ul className="flex flex-wrap gap-x-6 gap-y-2">
-          {LEGAL.map((l) => (
-            <li key={l.label}>
-              <a
-                href={l.href}
-                target="_blank"
-                rel="noreferrer noopener"
-                className="text-[0.8125rem] transition-colors duration-300 hover:text-[color:var(--teal-deep)]"
-                style={{ color: 'var(--muted)' }}
-              >
-                {l.label}
-              </a>
-            </li>
-          ))}
-        </ul>
       </div>
     </footer>
   )

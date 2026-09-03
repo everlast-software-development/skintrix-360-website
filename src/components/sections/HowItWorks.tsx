@@ -2,7 +2,8 @@ import { m, useReducedMotion } from 'framer-motion'
 
 import { Reveal } from '@/components/ui/Reveal'
 import type { Variants } from '@/lib/motion'
-import { VIEWPORT, fadeUp, stagger, transition } from '@/lib/motion'
+import { EASE, VIEWPORT, fadeUp, stagger, transition } from '@/lib/motion'
+import { useTextReveal } from '@/hooks/useTextReveal'
 
 /**
  * A standard section intro, one white showcase panel holding a fan of three
@@ -49,9 +50,6 @@ const CONCERNS = [
   ],
 ]
 
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep']
-const TICKS_PER_MONTH = 10
-
 /**
  * The palette all three cards share. Read off the concern chips rather than
  * restated, so Scan's markers, Analyze's chips and Follow's readings are the
@@ -61,12 +59,6 @@ const ACCENTS = CONCERNS.flat().map((c) => c.dot)
 
 /** Minus the neutral: a grey detection point or data point reads as inactive. */
 const ACCENT_VIVID = ACCENTS.filter((c) => c !== '#9CA3AF')
-
-/** Evenly spread across the palette, so a short series still spans its range. */
-const spread = (count: number) =>
-  Array.from({ length: count }, (_, i) =>
-    ACCENT_VIVID[Math.round((i * (ACCENT_VIVID.length - 1)) / (count - 1))],
-  )
 
 /**
  * Facial landmarks as percentages of the scan frame, measured off
@@ -205,7 +197,7 @@ function ConcernChips() {
                     <span className="h-5 w-5 rounded-full blur-[4px]" style={{ background: c.dot }} />
                   )}
                   <span
-                    className="text-[0.8125rem] leading-none font-semibold"
+                    className="type-legal"
                     style={{ color: c.text }}
                   >
                     {c.label}
@@ -225,117 +217,248 @@ function ConcernChips() {
   )
 }
 
+/* ===========================================================================
+   Step 03 — the progress chart
+   =========================================================================== */
+
 /**
- * Step 03 — the trend, drawing itself. The line is set to `pathLength={1}` so
- * the dash offset animates from 1 to 0 regardless of the path's real geometry.
- * The curve improves overall but dips once in the middle: a line that only ever
- * rises reads as a sales chart, not as skin being monitored.
+ * Seven monthly skin scores. Illustrative sample data: a gentle rise that
+ * levels off, which is what real monitoring looks like — not a straight climb.
+ *
+ * The GEOMETRY IS DERIVED from these numbers rather than hand-written as a
+ * path, so changing a value moves its point, its marker and the fill together.
+ * The visual this replaces had a literal `d` attribute sitting beside a
+ * separate array of vertex coordinates, and the two could disagree silently.
  */
-const TREND_PATH =
-  'M10 62 C30 61 48 55 68 54 C90 53 108 45 126 44 C146 43 166 46 184 46 C206 46 224 33 242 30 C262 27 274 21 290 18'
+const PROGRESS_SCORES = [
+  { date: '5 Apr', value: 92 },
+  { date: '6 Apr', value: 88 },
+  { date: '8 Apr', value: 78 },
+  { date: '8 Apr', value: 75 },
+  { date: '22 Apr', value: 88 },
+  { date: '22 Apr', value: 62 },
+  { date: '22 Jul', value: 86 },
+  { date: '6 Aug', value: 92 },
+] as const
 
-/** One palette colour per reading, spread so six points span the full range. */
-const TREND_COLOURS = spread(6)
+/**
+ * The drawing box. `meet` scaling keeps circles circular and the stroke even,
+ * so these are real units rather than a stretched grid.
+ *
+ * `left` leaves room for the y labels, and the domain is the app's own fixed
+ * 0–100 rather than one fitted to the data. A fitted domain would rescale the
+ * chart every time a score changed, so the same dip would look different from
+ * one scan to the next — on a score out of 100 the axis has to BE 100 for two
+ * readings to be comparable at a glance.
+ */
+const CH = {
+  w: 340,
+  h: 190,
+  left: 42,
+  right: 322,
+  top: 14,
+  base: 148,
+  min: 0,
+  max: 100,
+} as const
 
-/** Vertices of `TREND_PATH`, with when each lands during the 7s draw. */
-const TREND_POINTS = [
-  { x: 10, y: 62, at: 0.2 },
-  { x: 68, y: 54, at: 0.95 },
-  { x: 126, y: 44, at: 1.7 },
-  { x: 184, y: 46, at: 2.45 },
-  { x: 242, y: 30, at: 3.2 },
-  { x: 290, y: 18, at: 3.85 },
-]
+/** The gridline values, and the only y labels the app prints. */
+const GRID_VALUES = [0, 25, 50, 75, 100]
 
-function HistoryRuler() {
+const px = (i: number) => CH.left + (i * (CH.right - CH.left)) / (PROGRESS_SCORES.length - 1)
+const py = (v: number) => CH.base - ((v - CH.min) / (CH.max - CH.min)) * (CH.base - CH.top)
+
+const PTS = PROGRESS_SCORES.map((s, i) => ({ ...s, x: px(i), y: py(s.value) }))
+
+/** The five gridlines, positioned from the domain values they label. */
+const GRID = GRID_VALUES.map((v) => ({ v, y: py(v) }))
+
+/**
+ * Catmull-Rom through the points, emitted as cubic béziers, CLAMPED so the
+ * curve can never leave its own data.
+ *
+ * A real spline rather than `Q`/`T` shorthand: the shorthand mirrors the
+ * previous control point, so a single reversal makes every segment after it
+ * overshoot. 6 is the standard Catmull-Rom-to-bézier divisor.
+ *
+ * The clamp is what this series actually needs. Plain Catmull-Rom overshoots at
+ * a sharp reversal, and this data reverses hard — 88 down to 62 and back up to
+ * 86. Unclamped, the curve dips visibly below 62 and bulges past 92, drawing
+ * scores that were never recorded. Holding each control point inside the two
+ * readings it sits between keeps the line smooth AND truthful.
+ */
+function smoothPath(pts: { x: number; y: number }[]) {
+  if (pts.length < 2) return ''
+  const clamp = (v: number, a: number, b: number) =>
+    Math.min(Math.max(v, Math.min(a, b)), Math.max(a, b))
+
+  let d = `M${pts[0].x} ${pts[0].y}`
+  for (let i = 0; i < pts.length - 1; i++) {
+    const p0 = pts[i - 1] ?? pts[i]
+    const p1 = pts[i]
+    const p2 = pts[i + 1]
+    const p3 = pts[i + 2] ?? p2
+    d +=
+      ` C${p1.x + (p2.x - p0.x) / 6} ${clamp(p1.y + (p2.y - p0.y) / 6, p1.y, p2.y)}` +
+      ` ${p2.x - (p3.x - p1.x) / 6} ${clamp(p2.y - (p3.y - p1.y) / 6, p1.y, p2.y)}` +
+      ` ${p2.x} ${p2.y}`
+  }
+  return d
+}
+
+const LINE_D = smoothPath(PTS)
+
+/** The same curve, closed to the baseline — one shape, so the fill can never
+    drift out from under the stroke. */
+const AREA_D = `${LINE_D} L${CH.right} ${CH.base} L${CH.left} ${CH.base} Z`
+
+/**
+ * Step 03 — the score trend, drawn on scroll.
+ *
+ * Mirrors the app's Progress chart: fixed 0–100 axis with its five labelled
+ * gridlines, one marker per recorded scan, and the scan date under each. It
+ * sits in the same fixed `h-[13rem]` band as `ScanCapture` and `ConcernChips`,
+ * so all three cards keep exactly the same height, and nothing below it in the
+ * card changes.
+ *
+ * THE ANIMATION
+ * One pass on entry, in this order: the area grows up from its baseline, the
+ * stroke draws left to right, then the markers pop in one after another —
+ * about 1.2s end to end, on the page's shared `EASE`.
+ *
+ * `pathLength` is framer-motion's own normalisation: it sets `pathLength="1"`
+ * on the element and animates `stroke-dasharray` against that, so the draw is
+ * correct without measuring the real path. That is also why this does not
+ * reuse the `--animate-trend-draw` keyframes the old visual used — those loop
+ * forever on a 7s cycle, and this has to fire once, on entry.
+ *
+ * Under `prefers-reduced-motion` every element renders in its finished state
+ * and no animation is scheduled at all.
+ */
+function ProgressMiniChart() {
+  const reduced = useReducedMotion() ?? false
+
+  /* The markers wait for the stroke to reach them, so the draw and the pops
+     read as one gesture rather than two that overlap. */
+  const markerGroup: Variants = {
+    hidden: {},
+    show: { transition: { staggerChildren: 0.06, delayChildren: reduced ? 0 : 0.42 } },
+  }
+  const markerIn: Variants = {
+    hidden: { opacity: 0, scale: 0.4 },
+    show: { opacity: 1, scale: 1, transition: { duration: 0.34, ease: EASE } },
+  }
+
   return (
-    <div className="flex h-full items-center">
-      <div className="w-[30rem] -translate-x-12 shrink-0">
-        <div className="relative h-[4rem]">
-          <svg
-            viewBox="0 0 300 80"
-            preserveAspectRatio="none"
-            className="absolute inset-0 h-full w-full"
-            aria-hidden
-          >
-            <defs>
-              {/* The line runs the palette left to right — the same accents the
-                  other two cards use, read as a series over time. */}
-              <linearGradient id="trend-stroke" x1="0" y1="0" x2="1" y2="0">
-                {ACCENT_VIVID.map((c, i) => (
-                  <stop key={c} offset={`${(i / (ACCENT_VIVID.length - 1)) * 100}%`} stopColor={c} />
-                ))}
-              </linearGradient>
-              <linearGradient id="trend-fill" x1="0" y1="0" x2="1" y2="1">
-                {ACCENT_VIVID.map((c, i) => (
-                  <stop
-                    key={c}
-                    offset={`${(i / (ACCENT_VIVID.length - 1)) * 100}%`}
-                    stopColor={c}
-                    stopOpacity="0.16"
-                  />
-                ))}
-              </linearGradient>
-              {/* The fill is clipped by the line's own shape, so it can share
-                  the draw animation without a second animated path. */}
-              <clipPath id="trend-clip">
-                <path d={`${TREND_PATH} L290 80 L10 80 Z`} />
-              </clipPath>
-            </defs>
+    /* `group` drives the hover state, which costs no JS: every property it
+       touches is a real CSS property on an SVG element. */
+    <div className="group flex h-full items-center justify-center px-4">
+      <svg
+        viewBox={`0 0 ${CH.w} ${CH.h}`}
+        preserveAspectRatio="xMidYMid meet"
+        className="h-full w-full"
+        aria-hidden
+      >
+        <defs>
+          <linearGradient id="progress-area-fill" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="var(--accent)" stopOpacity={0.32} />
+            <stop offset="100%" stopColor="var(--accent)" stopOpacity={0.02} />
+          </linearGradient>
+        </defs>
 
-            <rect x="0" y="0" width="300" height="80" fill="url(#trend-fill)" clipPath="url(#trend-clip)" />
-
-            <path
-              d={TREND_PATH}
-              fill="none"
-              stroke="url(#trend-stroke)"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              pathLength={1}
-              strokeDasharray={1}
-              className="animate-trend-draw [--trend-len:1] motion-reduce:animate-none"
-              vectorEffect="non-scaling-stroke"
-            />
-          </svg>
-
-          {/* Readings sit outside the SVG so they scale uniformly — the chart
-              uses `preserveAspectRatio="none"`, which would stretch circles. */}
-          {TREND_POINTS.map((pt, i) => (
-            <span
-              key={pt.x}
-              aria-hidden
-              style={{
-                left: `${(pt.x / 300) * 100}%`,
-                top: `${(pt.y / 80) * 100}%`,
-                animationDelay: `${pt.at}s`,
-                background: TREND_COLOURS[i],
-              }}
-              className="animate-trend-point absolute h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full ring-2 ring-[color:var(--color-surface)] motion-reduce:animate-none"
+        {/* The grid, and the scale it stands for. Static on purpose: this is
+            the paper the chart is drawn on, and animating it would pull the eye
+            to the frame instead of the data. The 0 line is a shade stronger —
+            it is the axis the fill sits on, not just another division. */}
+        <g strokeWidth={1}>
+          {GRID.map(({ v, y }) => (
+            <line
+              key={v}
+              x1={CH.left}
+              y1={y}
+              x2={CH.right}
+              y2={y}
+              stroke={v === 0 ? 'var(--line)' : 'var(--line-soft)'}
             />
           ))}
-        </div>
+        </g>
 
-        {/* The ruler. Exactly `TICKS_PER_MONTH` ticks per month across the full
-            width, so a taller tick lands on each month and the labels below sit
-            under their own division. */}
-        <div aria-hidden className="flex w-full items-end justify-between">
-          {Array.from({ length: MONTHS.length * TICKS_PER_MONTH }, (_, i) => (
-            <span
+        {/* Y labels — 0 / 25 / 50 / 75 / 100, as the app prints them. End
+            anchored so one, two and three-figure numbers all stack flush
+            against the plot edge. */}
+        <g fontSize={11} fill="var(--text-muted)" textAnchor="end">
+          {GRID.map(({ v, y }) => (
+            <text key={v} x={CH.left - 10} y={y + 3.8}>
+              {v}
+            </text>
+          ))}
+        </g>
+
+        {/* The fill, growing up from the baseline. `transformOrigin` is in user
+            units because an SVG child has no CSS box for a percentage to
+            resolve against. */}
+        <m.path
+          d={AREA_D}
+          fill="url(#progress-area-fill)"
+          className="transition-opacity duration-500 group-hover:opacity-80"
+          style={{ transformOrigin: `${CH.left}px ${CH.base}px` }}
+          initial={reduced ? false : { opacity: 0, scaleY: 0.55 }}
+          whileInView={{ opacity: 1, scaleY: 1 }}
+          viewport={VIEWPORT}
+          transition={{ duration: 0.9, ease: EASE }}
+        />
+
+        {/* The stroke, drawing left to right. */}
+        <m.path
+          d={LINE_D}
+          fill="none"
+          stroke="var(--accent)"
+          strokeWidth={2.5}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className="transition-[stroke-width] duration-300 group-hover:[stroke-width:3.25]"
+          initial={reduced ? false : { pathLength: 0 }}
+          whileInView={{ pathLength: 1 }}
+          viewport={VIEWPORT}
+          transition={{ duration: 1.15, ease: EASE }}
+        />
+
+        {/* Hollow markers — white centre, teal ring, as in the app. Keyed by
+            index: two scan dates repeat, so the date is not a unique key. */}
+        <m.g
+          variants={markerGroup}
+          initial={reduced ? false : 'hidden'}
+          whileInView="show"
+          viewport={VIEWPORT}
+        >
+          {PTS.map((p, i) => (
+            <m.circle
               key={i}
-              className={`w-px ${i % TICKS_PER_MONTH === 0 ? 'h-2.5 bg-[color:rgb(16_42_67_/_0.28)]' : 'h-1.5 bg-[color:rgb(16_42_67_/_0.13)]'}`}
+              cx={p.x}
+              cy={p.y}
+              r={4}
+              fill="var(--color-surface)"
+              stroke="var(--accent)"
+              strokeWidth={2}
+              variants={reduced ? undefined : markerIn}
+              className="transition-[stroke-width] duration-300 group-hover:[stroke-width:2.75]"
+              style={{ transformOrigin: `${p.x}px ${p.y}px` }}
             />
           ))}
-        </div>
+        </m.g>
 
-        <div aria-hidden className="mt-2 flex w-full">
-          {MONTHS.map((mo) => (
-            <span key={mo} className="flex-1 text-[0.6875rem] leading-none font-medium text-ink-muted">
-              {mo}
-            </span>
+        {/* Scan dates. 11 user units rather than the `type-legal` role: axis
+            ticks are the one thing here that cannot take a prose size — eight
+            dated labels at 13px need ~320 units and the plot is 280 wide, so
+            they collided. The site scale governs copy, not chart furniture. */}
+        <g fontSize={11} fill="var(--text-muted)" textAnchor="middle">
+          {PTS.map((p, i) => (
+            <text key={i} x={p.x} y={CH.base + 24}>
+              {p.date}
+            </text>
           ))}
-        </div>
-      </div>
+        </g>
+      </svg>
     </div>
   )
 }
@@ -363,7 +486,7 @@ const STEPS = [
     body: 'Keep track of your skin over time and see how your skin changes through personalized insights.',
     src: '/screen3.webp',
     alt: 'The SkinTrix360 app showing a skincare calendar',
-    visual: <HistoryRuler />,
+    visual: <ProgressMiniChart />,
   },
 ]
 
@@ -400,16 +523,35 @@ const phoneIn: Variants = {
 }
 
 export function HowItWorks() {
+  /* Word-by-word GSAP reveal on the section heading. */
+  const headingRef = useTextReveal<HTMLHeadingElement>()
   const reduced = useReducedMotion()
 
   return (
-    <section id="how-it-works" aria-labelledby="how-heading" className="section-y relative" style={{ background: 'var(--bg-cool)' }}>
-      <div className="shell">
-        <div className="mx-auto max-w-[38rem] text-center">
-          <Reveal>
-            <h2 id="how-heading" className="text-section">
-              How it works
-            </h2>
+    <section
+      id="how-it-works"
+      aria-labelledby="how-heading"
+      className="section-y relative"
+      style={{ background: '#F5F6FD' }}
+    >
+      {/* The white-to-ground fade that used to sit here is gone.
+
+          It existed to blend this section down from a WHITE section above it.
+          Every section now resolves to #F5F6FD, so the fade had nothing to
+          blend FROM — it was laying white over the ground and then dissolving
+          it, which made the fade itself the seam: a 325px band starting at
+          pure white, measured down the page's left gutter. */}
+
+      <div className="shell relative">
+        <div className="measure-header text-center">
+          <h2 ref={headingRef} id="how-heading" className="text-section">
+            How it works
+          </h2>
+          <Reveal delay={0.08}>
+            <p className="text-lead mt-5">
+              From a quick skin scan to personalized insights, get a clearer understanding of
+              your skin and what it needs.
+            </p>
           </Reveal>
         </div>
 
@@ -481,9 +623,9 @@ export function HowItWorks() {
                 {step.visual}
               </div>
               <div className="px-7 text-center">
-                <span className="text-eyebrow text-teal-deep">{step.n}</span>
-                <h3 className="mt-3 text-[1.25rem] font-semibold tracking-[-0.02em]">{step.title}</h3>
-                <p className="mt-2 text-[0.9375rem] leading-[1.7] text-ink-soft">{step.body}</p>
+                <span className="text-eyebrow">{step.n}</span>
+                <h3 className="type-card-title mt-3">{step.title}</h3>
+                <p className="type-body mt-2">{step.body}</p>
               </div>
             </m.li>
           ))}

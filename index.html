@@ -13,6 +13,23 @@
     <meta name="theme-color" content="#F6F6FA" />
     <meta name="color-scheme" content="light" />
 
+    <!-- Every load starts at the top.
+         Browsers restore the previous scroll offset on reload, which drops a
+         returning visitor into the middle of a section with the animations
+         above them already spent. `manual` turns that off.
+
+         It has to be an inline script in the HEAD, not a line in main.tsx: the
+         browser restores the offset shortly after first layout, and the module
+         bundle is React plus the whole site — it can easily execute after that
+         moment, which would leave the flag set too late to have any effect.
+         This runs during parse, before the first paint, and costs nothing.
+
+         Setting the flag is only half of it; main.tsx does the explicit reset
+         to 0,0. See the note there for why both are needed. -->
+    <script>
+      if ('scrollRestoration' in history) history.scrollRestoration = 'manual'
+    </script>
+
     <title>SkinTrix360 — Skin Intelligence, Simplified</title>
     <meta
       name="description"

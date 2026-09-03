@@ -13,6 +13,164 @@
     'Segoe UI', Roboto, sans-serif;
 
   /* ---------------------------------------------------------------
+     Type scale — the ONE system every section reads from.
+
+     Three tiers, matching Consultation's existing breakpoints, which
+     are what the rest of the site was standardised onto:
+       -d  desktop   ≥1025px
+       -t  tablet      769–1024px
+       -m  mobile     ≤768px
+
+     Deliberately NOT `clamp()`. The tiers are discrete steps so a
+     heading is the same size on every section at a given width; the
+     fluid clamps this replaced were why no two sections agreed.
+
+     Consumed only by the `.type-*` classes and the four legacy
+     `text-*` utilities further down. No section reads these directly,
+     and no section sets a size, weight or text colour of its own.
+     --------------------------------------------------------------- */
+  --type-eyebrow-d: 12px;
+  --type-eyebrow-t: 12px;
+  --type-eyebrow-m: 11px;
+
+  --type-h2-d: 40px;
+  --type-h2-t: 32px;
+  --type-h2-m: 26px;
+
+  --type-h3-d: 22px;
+  --type-h3-t: 20px;
+  --type-h3-m: 18px;
+
+  /* Titles inside a card or a compact cell, where 22px would break the
+     box. A size token only — the element stays whatever heading level
+     it already was. */
+  --type-card-title-d: 17px;
+  --type-card-title-t: 17px;
+  --type-card-title-m: 16px;
+
+  --type-lead-d: 18px;
+  --type-lead-t: 17px;
+  --type-lead-m: 16px;
+
+  --type-body-d: 16px;
+  --type-body-t: 16px;
+  --type-body-m: 15px;
+
+  --type-small-d: 14px;
+  --type-small-t: 14px;
+  --type-small-m: 13px;
+
+  --type-legal-d: 13px;
+  --type-legal-t: 13px;
+  --type-legal-m: 12px;
+
+  /* Weight carries far less of the hierarchy than it used to: headings
+     sat at 700–800 and body at 400, which read as two typefaces rather
+     than one scale. 500 for every heading, 400 for every body. */
+  --type-weight-heading: 500;
+  --type-weight-eyebrow: 600;
+  --type-weight-body: 400;
+
+  --type-lh-eyebrow: 1;
+  --type-lh-h2: 1.25;
+  --type-lh-h3: 1.35;
+  --type-lh-lead: 1.65;
+  --type-lh-body: 1.6;
+  --type-lh-small: 1.5;
+
+  --type-tracking-eyebrow: 0.14em;
+
+  /* Measure. Long lines were part of why the page read as inconsistent. */
+  --type-measure-header: 660px;
+  --type-measure-body: 640px;
+
+  /* ---------------------------------------------------------------
+     Long-form legal pages — /privacy-policy and /delete-account.
+
+     A document is not a landing section and does not read like one:
+     you sit with it for minutes rather than scanning it in seconds.
+     So the body runs bigger, the leading looser, and the ink darker
+     than the marketing scale above. These are the ONLY sizes on the
+     site outside the main scale, they apply inside `.legal-doc` and
+     nowhere else, and both legal pages share them so the two can
+     never drift apart.
+
+     760px rather than the 640px body measure: at 18px, 640px is a
+     short line, and the extra width is what lets the column reach a
+     sensible right edge while its LEFT edge stays locked to the
+     header grid.
+     --------------------------------------------------------------- */
+  --type-legal-measure: 760px;
+
+  --type-legal-title-d: 52px;
+  --type-legal-title-t: 40px;
+  --type-legal-title-m: 32px;
+
+  --type-legal-h2-d: 28px;
+  --type-legal-h2-t: 25px;
+  --type-legal-h2-m: 22px;
+
+  --type-legal-h3-d: 20px;
+  --type-legal-h3-t: 19px;
+  --type-legal-h3-m: 18px;
+
+  --type-legal-meta-d: 20px;
+  --type-legal-meta-t: 19px;
+  --type-legal-meta-m: 18px;
+
+  --type-legal-body-d: 18px;
+  --type-legal-body-t: 17px;
+  --type-legal-body-m: 16px;
+
+  --type-legal-small-d: 15px;
+  --type-legal-small-t: 15px;
+  --type-legal-small-m: 14px;
+
+  --type-legal-fine-d: 14px;
+  --type-legal-fine-t: 14px;
+  --type-legal-fine-m: 13px;
+
+  /* 600, not the 500 the marketing scale uses. With body ink and
+     heading ink now the same value, weight is doing more of the work
+     of separating a heading from a paragraph than it does elsewhere. */
+  --type-legal-weight-heading: 600;
+  --type-legal-lh-body: 1.75;
+
+  /* ---------------------------------------------------------------
+     ONE INK.
+
+     These pages resolve to a single text colour — `--text-heading` —
+     for the title, every heading, every section number, all body
+     copy and every bolded run. Hierarchy is carried by size, weight
+     and space, never by hue. Four colours competing down a legal
+     page (navy headings, teal numbers, grey meta, paler grey
+     markers) read as noise; one reads as typesetting.
+
+     The two values below are not new colours. They are the SAME ink
+     at reduced alpha, for the handful of things that must recede —
+     the metadata line, the colophon, and list markers. Over the
+     white surface they land as lighter navies, so the page still
+     holds one hue throughout.
+
+     `--text-accent` survives on these pages for exactly one job:
+     links. That is the site-wide convention and the only place a
+     second colour earns its place here.
+     --------------------------------------------------------------- */
+  --text-legal-secondary: color-mix(in oklab, var(--text-heading) 68%, transparent);
+  --text-legal-faint: color-mix(in oklab, var(--text-heading) 42%, transparent);
+
+  /* Icon ink. Held at the PRE-unification muted value on purpose: it is
+     what `fill-icon-muted` reads, so retokenising text can never drag an
+     SVG fill along with it (`--text-muted` moved #6B7490 → #94A0AC). */
+  --color-icon-muted: #6B7490;
+
+  /* The green success check beside GetStarted's reassurance list. A GLYPH
+     colour, not type: it is the only non-brand hue left in the nine files, and
+     flattening it to a text token would recolour an icon. Tokenised here so no
+     section carries a bare hex. */
+  --color-check: #1FA45C;
+
+  /* ---------------------------------------------------------------
      SkinTrix 360 brand palette. Declared here as new names; the legacy
      aliases below keep their original values so the hero is unaffected.
      Everything after the hero re-points those aliases at these — see
@@ -90,6 +248,13 @@
 
   --radius-panel: 20px;
   --radius-card: 28px;
+  /* Every action button on the site. Taken from GetStarted's "Start your skin
+     analysis", which was the one button already drawn this way; the rest were
+     999px pills, 12px or 10px. In the `--radius-*` namespace, so Tailwind also
+     emits it as `rounded-btn` for the call sites. Switches, segmented toggles
+     and the calendar's icon circles are NOT buttons in this sense and keep
+     their pill/circle shapes. */
+  --radius-btn: 14px;
 
   --shadow-soft: 0 1px 2px rgb(0 0 0 / 0.04), 0 8px 18px -6px rgb(0 0 0 / 0.05);
   --shadow-card: 0 1px 2px rgb(0 0 0 / 0.03), 0 8px 18px rgb(0 0 0 / 0.05);
@@ -128,6 +293,10 @@
      a seamless loop visibly pulse at the wrap point. */
   --animate-drift-left: drift-left 34s linear infinite;
   --animate-drift-right: drift-right 34s linear infinite;
+  /* The footer's per-character wave. One shared cycle; the travelling effect
+     comes from a per-letter `animation-delay` set at the call site. Opacity
+     only — nothing moves, so the line can never reflow mid-cycle. */
+  --animate-wave: wave 2.6s ease-in-out infinite;
   /* 03 — the trend line drawing itself, then resetting. */
   --animate-trend-draw: trend-draw 7s cubic-bezier(0.65, 0, 0.35, 1) infinite;
   /* 03 — each reading arriving after the line reaches it. */
@@ -233,6 +402,16 @@
     }
   }
 
+  @keyframes wave {
+    0%,
+    100% {
+      opacity: 0.3;
+    }
+    50% {
+      opacity: 1;
+    }
+  }
+
   @keyframes trend-draw {
     0% {
       stroke-dashoffset: var(--trend-len, 300);
@@ -323,14 +502,30 @@
     overflow-x: clip;
   }
 
-  /* Headings stay at medium weight — the scale carries the hierarchy,
-     not the stroke weight. */
+  /* Headings are medium, not bold. 700 here was the single biggest reason two
+     sections read as two typefaces: any heading that forgot a scale class
+     landed bold, next to a section whose class said 500.
+
+     Letter-spacing stays at -0.035em deliberately — zeroing it would loosen
+     every heading on the page, which is a visual change beyond retokenising.
+
+     This rule also matches the hero's h1/h2, which are out of scope. It does
+     not touch them: all six hero headings set `style={{ fontWeight: 600 }}`
+     inline, and an inline declaration outranks any stylesheet rule, so no
+     selector-level scoping is needed here. Verified in-browser at 1440.       */
   h1,
   h2,
   h3 {
-    font-weight: 500;
+    font-weight: var(--type-weight-heading);
     letter-spacing: -0.035em;
     text-wrap: balance;
+  }
+
+  h4,
+  h5,
+  h6 {
+    font-weight: 700;
+    letter-spacing: -0.02em;
   }
 
   p {
@@ -389,43 +584,582 @@
   padding-block-start: var(--section-rhythm);
 }
 
+/* ---------------------------------------------------------------------------
+   Type scale — legacy utility names.
+
+   The old philosophy here was "hierarchy is carried by WEIGHT as much as
+   size": display 800, section 800, statement 700. That is exactly what made
+   one family read as several, so it is gone. These four names now emit the
+   `.type-*` roles below, unchanged in behaviour from a call site's point of
+   view, so the five sections already using them converted for free and no
+   component references a dead class.
+
+     text-section    → the h2 role   (was 34→64px fluid at 800)
+     text-statement  → the h2 role   (was 26→40px fluid at 700)
+     text-lead       → the lead role (was 17→20px fluid)
+     text-eyebrow    → the eyebrow role (was a flat 12px at 700)
+
+   `text-display` is the ONE exception and keeps its original values: it is
+   used only by Hero.tsx, which is out of scope, so changing it would move the
+   hero. Do not fold it into the system.
+
+   Nunito Variable covers 200–1000 and `font-synthesis-weight: none` is set on
+   body, so every weight below is a real cut, never a browser-faked bold.
+   --------------------------------------------------------------------------- */
 @utility text-display {
-  font-size: clamp(2.75rem, 1.5rem + 4.3vw, 5.25rem);
-  line-height: 1.02;
-  letter-spacing: -0.042em;
-  font-weight: 500;
+  font-size: clamp(2.875rem, 1.55rem + 4.5vw, 5.5rem);
+  line-height: 1;
+  letter-spacing: -0.045em;
+  font-weight: 800;
 }
 
 @utility text-section {
-  font-size: clamp(2rem, 1.35rem + 2.5vw, 3.5rem);
-  line-height: 1.08;
-  letter-spacing: -0.038em;
-  font-weight: 500;
+  font-size: var(--type-h2-m);
+  line-height: var(--type-lh-h2);
+  font-weight: var(--type-weight-heading);
+  color: var(--text-heading);
+  @media (width >= 769px) {
+    font-size: var(--type-h2-t);
+  }
+  @media (width >= 1025px) {
+    font-size: var(--type-h2-d);
+  }
 }
 
 @utility text-statement {
-  font-size: clamp(1.5rem, 1.1rem + 1.5vw, 2.25rem);
-  line-height: 1.22;
-  letter-spacing: -0.03em;
-  font-weight: 500;
+  font-size: var(--type-h2-m);
+  line-height: var(--type-lh-h2);
+  font-weight: var(--type-weight-heading);
+  color: var(--text-heading);
+  @media (width >= 769px) {
+    font-size: var(--type-h2-t);
+  }
+  @media (width >= 1025px) {
+    font-size: var(--type-h2-d);
+  }
 }
 
 @utility text-lead {
-  font-size: clamp(1.0625rem, 1rem + 0.25vw, 1.1875rem);
-  line-height: 1.68;
+  font-size: var(--type-lead-m);
+  line-height: var(--type-lh-lead);
+  font-weight: var(--type-weight-body);
+  color: var(--text-body);
+  @media (width >= 769px) {
+    font-size: var(--type-lead-t);
+  }
+  @media (width >= 1025px) {
+    font-size: var(--type-lead-d);
+  }
 }
 
 @utility text-eyebrow {
-  font-size: 0.75rem;
-  line-height: 1;
-  letter-spacing: 0.16em;
+  font-size: var(--type-eyebrow-m);
+  line-height: var(--type-lh-eyebrow);
+  letter-spacing: var(--type-tracking-eyebrow);
   text-transform: uppercase;
-  font-weight: 600;
+  font-weight: var(--type-weight-eyebrow);
+  color: var(--text-accent);
+  @media (width >= 769px) {
+    font-size: var(--type-eyebrow-t);
+  }
+  @media (width >= 1025px) {
+    font-size: var(--type-eyebrow-d);
+  }
 }
 
 /* Reads as light, not as a border. */
 @utility hairline {
   box-shadow: inset 0 0 0 1px var(--color-hairline);
+}
+
+/* ===========================================================================
+   THE TYPE ROLES
+
+   One class per role. Each carries its size (all three tiers), weight, line
+   height and ink together, because those four were never independent — a
+   section that picked its own size also picked its own weight and its own
+   grey, which is what the unification had to end. A section applies one of
+   these and sets nothing else.
+
+   WHY THESE ARE UNLAYERED (i.e. not `@utility`)
+   `src/lib/cn.ts` is a plain `join`, NOT tailwind-merge, so a caller's class
+   never displaces a component's built-in one — both are emitted and the
+   cascade decides. `ui/card.tsx` bakes `leading-tight font-medium` into
+   CardTitle, which Consultation's bento titles go through. Tailwind emits its
+   utilities into `@layer utilities`, and unlayered rules beat layered ones no
+   matter what order they appear in, so declaring these outside any layer is
+   what makes `.type-card-title` reliably win over `.leading-tight` instead of
+   depending on Tailwind's sort order. `.btn-glossy` and `.hero-screen` in
+   this file are unlayered for the same reason.
+
+   Because they win over Tailwind, `text-white` cannot override one either —
+   that is what `.ink-invert` / `.ink-invert-soft` are for.
+   =========================================================================== */
+
+.type-eyebrow {
+  font-size: var(--type-eyebrow-m);
+  line-height: var(--type-lh-eyebrow);
+  letter-spacing: var(--type-tracking-eyebrow);
+  text-transform: uppercase;
+  font-weight: var(--type-weight-eyebrow);
+  color: var(--text-accent);
+}
+
+.type-h2 {
+  font-size: var(--type-h2-m);
+  line-height: var(--type-lh-h2);
+  font-weight: var(--type-weight-heading);
+  color: var(--text-heading);
+}
+
+.type-h3 {
+  font-size: var(--type-h3-m);
+  line-height: var(--type-lh-h3);
+  font-weight: var(--type-weight-heading);
+  color: var(--text-heading);
+}
+
+.type-card-title {
+  font-size: var(--type-card-title-m);
+  line-height: var(--type-lh-h3);
+  font-weight: var(--type-weight-heading);
+  color: var(--text-heading);
+}
+
+.type-lead {
+  font-size: var(--type-lead-m);
+  line-height: var(--type-lh-lead);
+  font-weight: var(--type-weight-body);
+  color: var(--text-body);
+}
+
+.type-body {
+  font-size: var(--type-body-m);
+  line-height: var(--type-lh-body);
+  font-weight: var(--type-weight-body);
+  color: var(--text-body);
+}
+
+.type-small {
+  font-size: var(--type-small-m);
+  line-height: var(--type-lh-small);
+  font-weight: var(--type-weight-body);
+  color: var(--text-body);
+}
+
+.type-legal {
+  font-size: var(--type-legal-m);
+  line-height: var(--type-lh-small);
+  font-weight: var(--type-weight-body);
+  color: var(--text-muted);
+}
+
+@media (width >= 769px) {
+  .type-eyebrow {
+    font-size: var(--type-eyebrow-t);
+  }
+  .type-h2 {
+    font-size: var(--type-h2-t);
+  }
+  .type-h3 {
+    font-size: var(--type-h3-t);
+  }
+  .type-card-title {
+    font-size: var(--type-card-title-t);
+  }
+  .type-lead {
+    font-size: var(--type-lead-t);
+  }
+  .type-body {
+    font-size: var(--type-body-t);
+  }
+  .type-small {
+    font-size: var(--type-small-t);
+  }
+  .type-legal {
+    font-size: var(--type-legal-t);
+  }
+}
+
+@media (width >= 1025px) {
+  .type-eyebrow {
+    font-size: var(--type-eyebrow-d);
+  }
+  .type-h2 {
+    font-size: var(--type-h2-d);
+  }
+  .type-h3 {
+    font-size: var(--type-h3-d);
+  }
+  .type-card-title {
+    font-size: var(--type-card-title-d);
+  }
+  .type-lead {
+    font-size: var(--type-lead-d);
+  }
+  .type-body {
+    font-size: var(--type-body-d);
+  }
+  .type-small {
+    font-size: var(--type-small-d);
+  }
+  .type-legal {
+    font-size: var(--type-legal-d);
+  }
+}
+
+/* Ink-only modifiers. A role class owns the ink, so overriding it needs a
+   rule from the same (unlayered) origin — `text-white` sits in Tailwind's
+   utilities layer and would lose.
+
+   `--muted` ink is for small print. `-accent` marks an accent WORD inside a
+   line that is otherwise body or heading ink. `-invert` pair is for the two
+   places a role sits on a dark photograph or a filled button, where the
+   role's own ink would fail contrast — a legibility exemption, not a colour
+   choice. */
+.ink-heading {
+  color: var(--text-heading);
+}
+.ink-body {
+  color: var(--text-body);
+}
+.ink-muted {
+  color: var(--text-muted);
+}
+.ink-accent {
+  color: var(--text-accent);
+}
+.ink-invert {
+  color: #ffffff;
+}
+/* Pricing's outlined CTA fills with teal on hover, so its ink has to invert
+   with it. `hover:text-white` cannot do this job here: it lives in Tailwind's
+   utilities layer and would lose to the unlayered `.ink-heading` on the same
+   element. */
+.ink-hover-invert:hover {
+  color: #ffffff;
+}
+/* Same reason: a link that sits inside a `.type-legal` paragraph needs its
+   hover ink to come from an unlayered rule to win. */
+.ink-hover-body:hover {
+  color: var(--text-body);
+}
+/* The footer's links. Replaces a pair of JS mouseenter/mouseleave handlers
+   that wrote the hex straight onto `style.color`.
+
+   The descendant half is load-bearing, not tidiness: a footer social cell is
+   an anchor wrapping an icon AND a label, and the label carries its own
+   `.ink-heading`. Inheritance alone would leave the icon turning teal while
+   the label stayed navy, because a class ON the label beats a colour
+   inherited from its parent. Repainting the subtree is what keeps "one hover
+   turns the whole cell teal" true. */
+.ink-hover-accent:hover,
+.ink-hover-accent:hover * {
+  color: var(--text-accent);
+}
+.ink-invert-soft {
+  color: rgb(255 255 255 / 0.9);
+}
+
+/* ===========================================================================
+   THE LEGAL DOCUMENT SCOPE
+
+   One class, worn by the `<article>` on /privacy-policy and /delete-account,
+   carrying everything those two pages need to differ from a landing section.
+   Both pages apply it and nothing else, which is what guarantees they are
+   typographically identical rather than merely similar.
+
+   ALIGNMENT
+   `max-width` with NO `margin-inline: auto`. That is the whole alignment fix:
+   the article is already inside `.shell`, the same wrapper the header uses, so
+   dropping the auto centring drops its left edge onto the header's left edge
+   exactly — 152px at 1440, 40px at 1024, 24px on a phone, the same figures the
+   logo sits at. Centring the column was what made these pages read as separate
+   documents parked in the middle of the viewport.
+
+   INK
+   Body copy takes `--text-heading`, the site's primary dark ink, rather than
+   the `--text-body` grey the marketing sections use. Long-form text carries
+   the reader for minutes and the grey was too light to sit with. `--text-body`
+   is not discarded — it drops down a level to become the SECONDARY ink here
+   (product name, dates, colophon), so both pages still resolve to the same
+   four tokens and no new colour enters the system.
+
+   These override `.type-*` rather than replacing them, so the pages keep
+   reading as the site's own roles at their call sites.
+   =========================================================================== */
+
+/* ---------------------------------------------------------------------------
+   THE SURFACE
+
+   One white sheet holding the whole document, sitting on the site's #F5F6FD
+   ground — the same construction the FAQ section already uses, down to the
+   24px/40px radii, so this is the site's existing surface language rather than
+   a new one. It spans the full width of `.shell`, which is what aligns its
+   edges with the header.
+
+   `--shadow-soft` is the site's own lightest shadow. A large sheet with no
+   shadow at all reads as a colour change rather than a surface; anything
+   heavier would fight the flat, soft look of the rest of the page.
+
+   No border: the radius, the white and the shadow are enough to describe the
+   edge, and a hairline on top of them is what makes a surface look boxed.
+   --------------------------------------------------------------------------- */
+.legal-surface {
+  background: #ffffff;
+  border-radius: 24px;
+  padding: 2rem 1.25rem;
+  box-shadow: var(--shadow-soft);
+}
+@media (width >= 769px) {
+  .legal-surface {
+    border-radius: 40px;
+    padding: 3.5rem 2.5rem;
+  }
+}
+@media (width >= 1025px) {
+  .legal-surface {
+    padding: 5rem 4.5rem;
+  }
+}
+
+.legal-doc {
+  max-width: var(--type-legal-measure);
+}
+
+/* ---------------------------------------------------------------------------
+   EDITORIAL RHYTHM
+
+   What stops fourteen numbered sections reading as one slab of text. Each
+   section is separated by real space and a hairline in `--line-soft`, the
+   lightest line the palette has — enough to say "new section" at a glance
+   while scrolling, not enough to look ruled.
+   --------------------------------------------------------------------------- */
+.legal-doc > section {
+  margin-top: 3rem;
+  padding-top: 3rem;
+  border-top: 1px solid var(--line-soft);
+}
+@media (width >= 769px) {
+  .legal-doc > section {
+    margin-top: 3.75rem;
+    padding-top: 3.75rem;
+  }
+}
+
+/* The masthead: title, then the metadata line, then a divider that closes the
+   introduction before the document proper begins. */
+.legal-masthead {
+  padding-bottom: 2rem;
+  border-bottom: 1px solid var(--line-soft);
+}
+@media (width >= 769px) {
+  .legal-masthead {
+    padding-bottom: 2.5rem;
+  }
+}
+
+/* `SkinTrix360 · Effective date: 11 May 2026`. Deliberately not shrunk into
+   fine print — it is the first thing that tells you what you are reading and
+   how current it is. */
+.legal-meta {
+  font-size: var(--type-legal-small-d);
+  line-height: 1.6;
+  font-weight: 400;
+  color: var(--text-legal-secondary);
+}
+.legal-meta-dot {
+  margin-inline: 0.6em;
+  color: var(--text-legal-faint);
+}
+/* Each half is one unit, so a narrow screen breaks the line AT the separator
+   instead of through the middle of "28 April 2026". */
+.legal-meta-part {
+  white-space: nowrap;
+}
+
+/* Section numbers, so the eye can run down the left edge and find "4." without
+   reading the headings. Accent ink and tabular figures — the number is a
+   locator, not part of the sentence. */
+/* Section numbers take their heading's colour by inheritance — the number and
+   its title are one line, not a label plus a title. Tabular figures keep the
+   left edge of "1." through "14." aligned as the eye runs down the page, which
+   is what keeps them scannable now that they are no longer tinted. */
+.legal-num {
+  font-variant-numeric: tabular-nums;
+}
+
+/* The one emphasis device on these pages, used two or three times in total:
+   an accent rule and an indent. No surface, no shadow, no radius — a card here
+   would compete with the sheet the whole page already sits on. */
+.legal-callout {
+  border-inline-start: 2px solid var(--text-heading);
+  padding-inline-start: 1.25rem;
+}
+@media (width >= 769px) {
+  .legal-callout {
+    padding-inline-start: 1.75rem;
+  }
+}
+
+/* A postal address is a stack of short lines, not prose. Body leading (1.75)
+   pulls them apart into three unrelated sentences. */
+.legal-address {
+  line-height: 1.55;
+}
+
+/* Lists. A little more room per item than body copy gets, and a hanging indent
+   that lines the text up rather than the bullet. */
+.legal-doc ul,
+.legal-doc ol {
+  padding-inline-start: 1.35rem;
+}
+.legal-doc li {
+  padding-inline-start: 0.35rem;
+}
+.legal-doc li::marker {
+  color: var(--text-legal-faint);
+}
+
+/* Links inside the prose. The underline sits far enough off the baseline to
+   clear the descenders, and thickens rather than moves on hover. */
+.legal-doc a {
+  text-underline-offset: 0.22em;
+  text-decoration-thickness: 1px;
+  transition: text-decoration-color 0.2s ease;
+}
+.legal-doc a:hover {
+  text-decoration-thickness: 2px;
+}
+
+/* Page title. */
+.legal-doc .type-h2 {
+  font-size: var(--type-legal-title-m);
+  line-height: 1.2;
+  font-weight: var(--type-legal-weight-heading);
+  color: var(--text-heading);
+}
+
+/* The numbered sections. */
+.legal-doc .type-h3 {
+  font-size: var(--type-legal-h2-m);
+  line-height: 1.3;
+  font-weight: var(--type-legal-weight-heading);
+  color: var(--text-heading);
+}
+
+/* Sub-sections — 3.1, 4.2 … Distinct from body by two steps of size and a
+   whole step of weight, without becoming a second section heading. */
+.legal-doc .type-card-title {
+  font-size: var(--type-legal-h3-m);
+  line-height: 1.4;
+  font-weight: var(--type-legal-weight-heading);
+  color: var(--text-heading);
+}
+
+/* The product name under the title. Secondary, but nowhere near fine print. */
+.legal-doc .type-lead {
+  font-size: var(--type-legal-meta-m);
+  line-height: 1.5;
+  font-weight: 400;
+  color: var(--text-legal-secondary);
+}
+
+/* Body copy, list items, numbered steps — one size for everything a reader
+   actually reads. */
+.legal-doc .type-body {
+  font-size: var(--type-legal-body-m);
+  line-height: var(--type-legal-lh-body);
+  font-weight: 400;
+  color: var(--text-heading);
+}
+
+/* Dates and the colophon. */
+.legal-doc .type-small {
+  font-size: var(--type-legal-small-m);
+  line-height: 1.6;
+  font-weight: 400;
+  color: var(--text-legal-secondary);
+}
+
+/* The closing disclaimer. */
+.legal-doc .type-legal {
+  font-size: var(--type-legal-fine-m);
+  line-height: 1.7;
+  font-weight: 400;
+  color: var(--text-legal-secondary);
+}
+
+/* Emphasis inside a paragraph. Body and heading ink are the same value in this
+   scope, so a bolded phrase can only be marked by weight — 500 would barely
+   register against 400 at this size. This also beats the `font-medium` the
+   pages pass on their own `<strong>`s. */
+.legal-doc strong {
+  font-weight: var(--type-legal-weight-heading);
+  color: var(--text-heading);
+}
+
+@media (width >= 769px) {
+  .legal-doc .type-h2 {
+    font-size: var(--type-legal-title-t);
+  }
+  .legal-doc .type-h3 {
+    font-size: var(--type-legal-h2-t);
+  }
+  .legal-doc .type-card-title {
+    font-size: var(--type-legal-h3-t);
+  }
+  .legal-doc .type-lead {
+    font-size: var(--type-legal-meta-t);
+  }
+  .legal-doc .type-body {
+    font-size: var(--type-legal-body-t);
+  }
+  .legal-doc .type-small {
+    font-size: var(--type-legal-small-t);
+  }
+  .legal-doc .type-legal {
+    font-size: var(--type-legal-fine-t);
+  }
+}
+
+@media (width >= 1025px) {
+  .legal-doc .type-h2 {
+    font-size: var(--type-legal-title-d);
+  }
+  .legal-doc .type-h3 {
+    font-size: var(--type-legal-h2-d);
+  }
+  .legal-doc .type-card-title {
+    font-size: var(--type-legal-h3-d);
+  }
+  .legal-doc .type-lead {
+    font-size: var(--type-legal-meta-d);
+  }
+  .legal-doc .type-body {
+    font-size: var(--type-legal-body-d);
+  }
+  .legal-doc .type-small {
+    font-size: var(--type-legal-small-d);
+  }
+  .legal-doc .type-legal {
+    font-size: var(--type-legal-fine-d);
+  }
+}
+
+/* Measure. Centred header blocks and body paragraphs, so no line runs longer
+   than the eye can track back from. Alignment is untouched — these set width
+   and centring of the BOX only, never `text-align`. */
+.measure-header {
+  max-width: var(--type-measure-header);
+  margin-inline: auto;
+}
+.measure-body {
+  max-width: var(--type-measure-body);
+}
+.measure-body-center {
+  max-width: var(--type-measure-body);
+  margin-inline: auto;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -454,8 +1188,11 @@
      near-white. Derived from #1EB9B7 / #1596D2 / #5D64D3 at ~8-10% strength, so
      the palette reads as one family while the saturated versions stay reserved
      for accents, buttons and borders. */
-  --page: #EAF4F7;
-  --page-wash: linear-gradient(135deg, #E9F7F6 0%, #E7F3FA 54%, #F0EFFC 100%);
+  /* The environment behind everything — what shows on overscroll. Held at the
+     same one ground as the sections; the diagonal wash it used to carry made
+     the page edge read as a different colour from the content on it. */
+  --page: #F5F6FD;
+  --page-wash: none;
 
   /* Interior ground. Sections inside the frame sit on white; only the world
      outside the frame carries the tint. */
@@ -471,15 +1208,45 @@
   --icon-glow: radial-gradient(circle, rgb(30 185 183 / 0.20) 0%, rgb(11 176 198 / 0.12) 42%, transparent 74%);
 
   /* Interior text and surfaces. */
-  --text: #1A2A33;
-  --text-soft: #4E6069;
-  --text-muted: #8496A0;
+  /* The whole site's text is anchored on #0D1839. Every other text token
+     below repoints to these three, so this is the only place the ink is set.
+
+     `-soft` and `-muted` are the SAME navy lightened, not a separate grey:
+     mixing a navy heading with a grey-teal body is what makes text look like
+     two unrelated systems. Keeping one hue throughout is what reads as
+     "everything is this colour", while the lightness steps preserve the
+     heading/body/caption hierarchy. Contrast on white: 17.4:1, 8.0:1, 4.6:1 —
+     all clear of WCAG AA. */
+  --text: #0D1839;
+  --text-soft: #47506B;
   --line: #E3EDEE;
+
+  /* ---- the unified text system -----------------------------------
+     Four values, and nothing else, for every one of the nine section
+     components. `--text` and `--text-soft` above are LEGACY and stay
+     exactly as they are: the hero and the navbar resolve their ink
+     through them (`--color-ink`, `--color-ink-soft`), and both are out
+     of scope, so neither value may move.
+
+     --text-muted is redeclared here rather than added, dropping its old
+     #6B7490 for the system value. Nothing outside the nine files reads
+     it; `fill-icon-muted` / `--color-icon-muted` holds the old value for
+     the one SVG fill that did.
+     ------------------------------------------------------------------ */
+  --text-heading: #1A2A5C; /* h2, h3, card titles — Consultation's own h2 ink */
+  --text-body: #5A6B7B; /* paragraphs and card body copy */
+  --text-muted: #94A0AC; /* small print, captions, legal, disclaimers */
+  --text-accent: #1EB9B7; /* eyebrows/kickers and accent words only */
   --line-soft: #EFF5F6;
 
-  --bg: #FFFFFF;
-  --bg-cool: #FAFEFE;
-  --bg-tint: #F5FBFB;
+  /* One ground for the whole site. Both the html/body canvas and every
+     section that paints var(--bg) resolve to this, so the page reads as a
+     single continuous surface with no lighter or darker bands.
+     Cards stay white via --surface, which is deliberately NOT derived
+     from this. */
+  --bg: #F5F6FD;
+  --bg-cool: #F5F6FD;
+  --bg-tint: #F5F6FD;
   --panel-radius: 20px;
 
   /* ---- existing names repointed */
@@ -509,10 +1276,12 @@
   --ink: var(--text); --body: var(--text-soft); --muted: var(--text-muted);
   --surface: #FFFFFF; --border: var(--line); --bg-page: #FFFFFF;
   --bg-tint-2: var(--bg-tint);
-  --atm-teal: linear-gradient(180deg,#FFFFFF,#F2FBFB,#FFFFFF);
-  --atm-cyan: linear-gradient(180deg,#FFFFFF,#F1FAFC,#FFFFFF);
-  --atm-blue: linear-gradient(180deg,#FFFFFF,#F3F8FD,#FFFFFF);
-  --atm-indigo: linear-gradient(180deg,#FFFFFF,#F6F6FD,#FFFFFF);
+  /* Flattened to the one ground. These were white → tint → white gradients,
+     which is what made SkinPlan and Pricing read as lighter bands. */
+  --atm-teal: #F5F6FD;
+  --atm-cyan: #F5F6FD;
+  --atm-blue: #F5F6FD;
+  --atm-indigo: #F5F6FD;
   --wash-sky: var(--bg-cool); --wash-aqua: var(--bg-tint);
   --wash-lavender: var(--bg-cool); --wash-sky-aqua: var(--bg-tint);
   --brand-wash-sky: var(--bg-cool); --brand-wash-teal: var(--bg-tint);
@@ -655,7 +1424,10 @@ body { background: transparent; color: var(--text-soft); }
   height: 3rem;
   padding: 0;
   border: 1px solid transparent;
-  border-radius: 999px;
+  /* 14px, not the 999px pill this used to be. One change here restyles both
+     call sites — the navbar's "Get Started" and the hero's two buttons all go
+     through `ui/Button.tsx`, so the hero needed no edit of its own. */
+  border-radius: var(--radius-btn);
   background: var(--accent);
   color: #FFFFFF;
   font-family: var(--font-sans);
@@ -751,4 +1523,24 @@ body { background: transparent; color: var(--text-soft); }
 .footer-reveal:focus-within {
   opacity: 1 !important;
   transform: none !important;
+}
+
+/* ---------------------------------------------------------------------------
+   Compatibility: the verdict disc's breathing ring.
+
+   Scoped to one keyframe name rather than a utility, because it is the only
+   place on the site that pulses. The element carrying it is `motion-reduce:
+   hidden`, so a visitor who asks for less motion never gets the element at
+   all — this needs no `prefers-reduced-motion` block of its own.
+   --------------------------------------------------------------------------- */
+@keyframes compat-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgb(30 185 183 / 0.34);
+  }
+  70% {
+    box-shadow: 0 0 0 14px rgb(30 185 183 / 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgb(30 185 183 / 0);
+  }
 }

@@ -17,6 +17,14 @@ import { cn } from '@/lib/cn'
 export function Navbar() {
   const [condensed, setCondensed] = useState(false)
 
+  /* Both links in this bar are fragments of the LANDING page. On a standalone
+     page (/delete-account) there is no #top and no #download to scroll to, so
+     they have to become document navigations back to '/'. On '/' itself they
+     stay bare fragments — Lenis only intercepts `a[href^="#"]`, and a
+     '/#download' href would fall through it to a native jump. */
+  const path = window.location.pathname
+  const home = path === '/' || path === '/index.html' ? '' : '/'
+
   useEffect(() => {
     const onScroll = () => setCondensed(window.scrollY > 16)
     onScroll()
@@ -40,11 +48,11 @@ export function Navbar() {
         )}
       >
         <div className="shell flex h-18 items-center justify-between">
-          <a href="#top" aria-label="SkinTrix360 home">
+          <a href={home + '#top'} aria-label="SkinTrix360 home">
             <Logo />
           </a>
 
-          <Button href="#download" className="h-11 text-sm">
+          <Button href={home + '#download'} className="h-11 text-sm">
             Get Started
           </Button>
         </div>

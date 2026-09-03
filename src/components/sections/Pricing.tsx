@@ -1,11 +1,38 @@
 import { useState } from 'react'
 import { AnimatePresence, m, useReducedMotion } from 'framer-motion'
-import { LuCheck, LuStar } from 'react-icons/lu'
+import type { IconType } from 'react-icons'
+import { LuCheck, LuCreditCard, LuLock, LuShield, LuStar } from 'react-icons/lu'
 
 import { useMediaQuery } from '@/hooks/useMediaQuery'
 import { cn } from '@/lib/cn'
 import { EASE } from '@/lib/motion'
 import { SITE } from '@/lib/site'
+import { useTextReveal } from '@/hooks/useTextReveal'
+
+/**
+ * The reassurance chips, inherited from the retired GetStarted section.
+ *
+ * All seven of its chips, kept verbatim — GetStarted carried them as two
+ * separate groups (icon pills and check-marks) and merging them into one row
+ * is the whole point, so the row is flat and the icons come along only where
+ * one existed. Wording is unchanged: these are product claims, and rewriting
+ * a claim while relocating it is how a page starts saying things nobody
+ * approved.
+ */
+/* Typed rather than `as const`: with a literal array TypeScript narrows each
+   entry to its own shape, so `chip.Icon` does not exist on the four that have
+   no icon. One optional field on one type is the whole fix. */
+type TrustChip = { label: string; Icon?: IconType }
+
+const TRUST_CHIPS: TrustChip[] = [
+  { label: 'No sign up required' },
+  { label: 'Private & Secure', Icon: LuShield },
+  { label: 'Free scan available' },
+  { label: '100% private analysis' },
+  { label: 'Your Data Stays Yours', Icon: LuLock },
+  { label: 'Payment Security', Icon: LuCreditCard },
+  { label: 'Active-ingredient guidance' },
+]
 
 /**
  * Pricing — the four plans the app actually sells.
@@ -89,6 +116,8 @@ const PLANS: Plan[] = [
 ]
 
 export function Pricing() {
+  /* Word-by-word GSAP reveal on the section heading. */
+  const headingRef = useTextReveal<HTMLHeadingElement>()
   const [isMonthly, setIsMonthly] = useState(true)
   // 1024px, not 768: the fan assumes a single row of four, which is only
   // true from `lg`. At tablet the grid is 2-up and the rotation made the
@@ -99,16 +128,16 @@ export function Pricing() {
   return (
     <section id="pricing" aria-labelledby="pricing-heading" className="section-y relative" style={{ background: 'var(--atm-blue)' }}>
       <div className="shell">
-        <div className="mx-auto max-w-[46rem] space-y-4 text-center">
-          <p className="text-eyebrow text-teal-deep">Pricing</p>
-          <h2 id="pricing-heading" className="text-statement">
+        <div className="measure-header space-y-4 text-center">
+          <p className="text-eyebrow">Pricing</p>
+          <h2 ref={headingRef} id="pricing-heading" className="text-statement">
             Choose the plan that fits your skin journey.
           </h2>
-          <p className="text-[1.0625rem] leading-[1.75] text-ink-soft">
+          <p className="text-lead">
             Start understanding your skin with AI-powered insights and personalized skin
             intelligence.
           </p>
-          <p className="text-[0.875rem] leading-none text-ink-muted">
+          <p className="type-small ink-muted">
             Upgrade anytime · Cancel anytime
           </p>
         </div>
@@ -137,8 +166,8 @@ export function Pricing() {
               )}
             />
           </button>
-          <span className="text-[0.9375rem] leading-none font-semibold">
-            Annual billing <span className="text-teal-deep">(Save ~17%)</span>
+          <span className="type-small ink-heading">
+            Annual billing <span className="ink-accent">(Save ~17%)</span>
           </span>
         </div>
 
@@ -198,13 +227,13 @@ export function Pricing() {
                         'h-4 w-4',
                         plan.featured
                           ? 'fill-[color:var(--brand-navy)] text-[color:var(--brand-navy)]'
-                          : 'fill-ink-muted text-ink-muted',
+                          : 'fill-icon-muted text-icon-muted',
                       )}
                     />
                     <span
                       className={cn(
-                        'text-[0.8125rem] leading-none font-semibold',
-                        plan.featured ? 'text-[color:var(--brand-navy)]' : 'text-ink-soft',
+                        'type-legal',
+                        plan.featured ? 'ink-heading' : 'ink-muted',
                       )}
                     >
                       {plan.badge}
@@ -213,7 +242,7 @@ export function Pricing() {
                 )}
 
                 <div className="flex flex-1 flex-col">
-                  <p className="text-[1rem] leading-none font-semibold text-ink-muted">
+                  <p className="type-card-title">
                     {plan.name}
                   </p>
 
@@ -229,17 +258,17 @@ export function Pricing() {
                         animate={{ opacity: 1 }}
                         exit={reduced ? undefined : { opacity: 0 }}
                         transition={{ duration: 0.3, ease: 'easeOut' }}
-                        className="text-[2rem] leading-none font-medium tracking-tight tabular-nums"
+                        className="ink-heading text-[2rem] leading-none font-medium tracking-tight tabular-nums"
                       >
                         {price.amount}
                       </m.span>
                     </AnimatePresence>
-                    <span className="text-[0.875rem] leading-6 font-semibold tracking-wide text-ink-muted">
+                    <span className="type-small ink-muted">
                       {price.period}
                     </span>
                   </div>
 
-                  <p className="mt-1 min-h-[1.25rem] text-[0.75rem] leading-5 text-ink-muted">
+                  <p className="type-legal mt-1 min-h-[1.25rem]">
                     {plan.unbilled ? '' : noAnnual ? 'billed monthly' : isMonthly ? 'billed monthly' : 'billed annually'}
                   </p>
 
@@ -249,7 +278,7 @@ export function Pricing() {
                         aria-hidden
                         className="mt-1 h-4 w-4 shrink-0 text-[color:var(--color-primary)]"
                       />
-                      <span className="text-left text-[0.9375rem] leading-[1.5] text-ink-soft">
+                      <span className="type-body text-left">
                         {plan.tokens}
                       </span>
                     </li>
@@ -265,27 +294,41 @@ export function Pricing() {
                     target="_blank"
                     rel="noreferrer noopener"
                     className={cn(
-                      'group relative mt-auto w-full overflow-hidden rounded-xl border px-4 py-2.5 text-center text-[1.0625rem] leading-7 font-semibold tracking-tight',
-                      'transform-gpu transition-all duration-300 ease-out hover:bg-[color:var(--brand-teal)] hover:text-white hover:ring-2 hover:ring-[color:var(--brand-teal)] hover:ring-offset-1',
+                      'type-card-title ink-hover-invert group relative mt-auto w-full overflow-hidden rounded-btn border px-4 py-2.5 text-center',
+                      'transform-gpu transition-all duration-300 ease-out hover:bg-[color:var(--brand-teal)] hover:ring-2 hover:ring-[color:var(--brand-teal)] hover:ring-offset-1',
                       'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--color-primary)]',
                       plan.featured
-                        ? 'border-[color:var(--brand-teal)] bg-[color:var(--brand-teal)] text-white'
-                        : 'border-[color:var(--color-hairline)] bg-surface text-ink',
+                        ? 'border-[color:var(--brand-teal)] bg-[color:var(--brand-teal)] ink-invert'
+                        : 'border-[color:var(--color-hairline)] bg-surface ink-heading',
                     )}
                   >
                     {plan.cta}
                   </a>
 
-                  <p className="mt-6 text-[0.75rem] leading-5 text-ink-muted">{plan.blurb}</p>
+                  <p className="type-legal mt-6">{plan.blurb}</p>
                 </div>
               </m.div>
             )
           })}
         </div>
 
-        <p className="mt-10 text-center text-[0.8125rem] leading-[1.6] text-ink-muted">
+        {/* One centred row, directly under the cards — `small` in muted ink,
+            so it reads as reassurance beneath the prices rather than as a
+            second list of features competing with them. */}
+        <ul className="mx-auto mt-10 flex max-w-[52rem] flex-wrap items-center justify-center gap-x-5 gap-y-2.5">
+          {TRUST_CHIPS.map((chip) => (
+            <li key={chip.label} className="flex items-center gap-1.5">
+              {chip.Icon ? (
+                <chip.Icon aria-hidden className="h-3.5 w-3.5 shrink-0 ink-muted" />
+              ) : null}
+              <span className="type-small ink-muted">{chip.label}</span>
+            </li>
+          ))}
+        </ul>
+
+        <p className="type-legal mt-6 text-center">
           Subscriptions are managed through the app store.
-          <a href={SITE.privacyUrl} className="ml-1 underline underline-offset-4 hover:text-ink-soft">
+          <a href={SITE.privacyUrl} className="ink-hover-body ml-1 underline underline-offset-4">
             Privacy Policy
           </a>
         </p>

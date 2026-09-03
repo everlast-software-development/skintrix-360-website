@@ -1,19 +1,42 @@
+import { useEffect } from 'react'
 import { LazyMotion, domAnimation } from 'framer-motion'
 
 import { Navbar } from '@/components/layout/Navbar'
+import { Preloader } from '@/components/layout/Preloader'
 import { ScrollProgress } from '@/components/layout/ScrollProgress'
 // Existing sections — unchanged, in their original order.
 import { Hero } from '@/components/sections/Hero'
 import { WhatItDoes } from '@/components/sections/WhatItDoes'
 import { HowItWorks } from '@/components/sections/HowItWorks'
-import { DetailsVideo } from '@/components/sections/DetailsVideo'
-import { SkinPlan } from '@/components/sections/SkinPlan'
-import { Consultation } from '@/components/sections/Consultation'
-import { Pricing } from '@/components/sections/Pricing'
-import { Faq } from '@/components/sections/Faq'
-import { GetStarted } from '@/components/sections/GetStarted'
+/* GetStarted is retired, not deleted — the file is untouched on disk and its
+   trust chips now live under the Pricing plan cards. Uncomment this line and
+   the one in `Landing` below to bring the whole section back. */
+// import { GetStarted } from '@/components/sections/GetStarted'
+import { UvIndex } from '@/components/sections/UvIndex'
 import { Footer } from '@/components/layout/Footer'
+import { lazySection } from '@/lib/lazySection'
 import { useSmoothScroll } from '@/hooks/useSmoothScroll'
+
+/* Everything below the first screen and a half, plus both legal pages. See
+   `lazySection` for why these are bundle splits rather than defer-until-seen,
+   and for the ScrollTrigger re-measure each one performs on mount. */
+const SkinPlan = lazySection(() => import('@/components/sections/SkinPlan'), 'SkinPlan')
+const Consultation = lazySection(
+  () => import('@/components/sections/Consultation'),
+  'Consultation',
+)
+const Compatibility = lazySection(
+  () => import('@/components/sections/Compatibility'),
+  'Compatibility',
+)
+const Pricing = lazySection(() => import('@/components/sections/Pricing'), 'Pricing')
+const Faq = lazySection(() => import('@/components/sections/Faq'), 'Faq')
+const FitScoreSection = lazySection(
+  () => import('@/components/sections/FitScoreSection'),
+  'FitScoreSection',
+)
+const PrivacyPolicy = lazySection(() => import('@/pages/PrivacyPolicy'), 'PrivacyPolicy')
+const DeleteAccount = lazySection(() => import('@/pages/DeleteAccount'), 'DeleteAccount')
 
 /**
  * The page.
@@ -23,8 +46,87 @@ import { useSmoothScroll } from '@/hooks/useSmoothScroll'
  * silently drop viewport gestures — without it every `whileInView` reveal on
  * the page stays at opacity 0.
  */
+/** The landing page — every section, in its original order. */
+function Landing() {
+  return (
+    <>
+      <Hero />
+      <WhatItDoes />
+      <HowItWorks />
+      {/* <GetStarted /> */}
+      <UvIndex />
+      <SkinPlan />
+      <Consultation />
+      <Compatibility />
+      <Pricing />
+      <Faq />
+      {/* Last on the page, and a normal static section again — the reveal
+          now lives entirely inside the footer, so this is the block that
+          slides up over it. */}
+      <FitScoreSection />
+    </>
+  )
+}
+
+/**
+ * Which page `<main>` holds.
+ *
+ * Read once, at module scope, because there is no client-side navigation to
+ * react to: every link on the site is a real document navigation, so a new
+ * route means a new page load and a fresh read. That is deliberate — two
+ * static documents do not justify a history-API router, and without one there
+ * is no scroll restoration, no focus management and no popstate handling to
+ * get wrong.
+ *
+ * A trailing slash is normalised away, so `/delete-account/` and
+ * `/delete-account` are the same route. Anything unrecognised falls through
+ * to the landing page, which is what a static host's SPA fallback serves for
+ * unknown paths anyway.
+ *
+ * Serving these paths in production needs the host to rewrite unknown paths to
+ * `index.html` — Vite's dev server already does.
+ */
+const ROUTES = {
+  '/privacy-policy': PrivacyPolicy,
+  '/delete-account': DeleteAccount,
+} as const
+
+const raw = window.location.pathname
+const path = raw.length > 1 && raw.endsWith('/') ? raw.slice(0, -1) : raw
+const Page = ROUTES[path as keyof typeof ROUTES] ?? Landing
+
 export default function App() {
   useSmoothScroll()
+
+  /**
+   * Land a hashed URL on its section.
+   *
+   * The browser resolves a fragment once, while the document is loading — and
+   * at that moment this page is an empty `<div id="root">`, so `#download`
+   * does not exist yet and the scroll silently does nothing. React mounts the
+   * section a tick later and the visitor is left at the top. That is why
+   * `/#download` from the legal pages' navbar appeared to do nothing.
+   *
+   * One pass, on mount, after the sections exist. `scroll-padding-top: 6rem`
+   * on `html` keeps the fixed navbar off the target, and this runs before
+   * Lenis is created — `useSmoothScroll` imports it asynchronously — so there
+   * is no smoothed position to desync from.
+   *
+   * Deliberately not reactive and deliberately silent when the hash matches
+   * nothing: in-page clicks are Lenis's job, and this must never fight it.
+   */
+  useEffect(() => {
+    const { hash } = window.location
+    if (hash.length <= 1) return
+
+    let target: Element | null = null
+    try {
+      target = document.querySelector(hash)
+    } catch {
+      return // a hash that is not a valid selector is not ours to handle
+    }
+    target?.scrollIntoView()
+  }, [])
 
   return (
     <LazyMotion features={domAnimation} strict>
@@ -35,23 +137,42 @@ export default function App() {
         Skip to content
       </a>
 
+      {/* A leaf, never a wrapper — see the note in Preloader.tsx. */}
+      <Preloader />
+
       <Navbar />
       <ScrollProgress />
 
-      <main id="main">
-        <Hero />
-        <WhatItDoes />
-        <HowItWorks />
-        <GetStarted />
-        <SkinPlan />
-        <Consultation />
-        <Pricing />
-        <Faq />
-        <DetailsVideo />
-      </main>
+      {/* The page shell. `LazyMotion` is a context provider and renders no
+          element of its own, so the flex column needs a real wrapper here.
+          `min-h-100svh` + `flex-[1_0_auto]` on main keeps the footer at the
+          bottom of the viewport when the content is shorter than the screen.
 
-      <Footer />
+          Nothing on this chain may carry `overflow: hidden`, `overflow-x:
+          clip`, a `transform`, `filter`, `perspective`, `backdrop-filter`,
+          `will-change` or `contain`. The footer reveal depends on a
+          `position: fixed` child resolving against the VIEWPORT, and every one
+          of those properties would make an ancestor its containing block
+          instead, pinning it to the page and killing the effect. The footer is
+          also a SIBLING of main, not inside it, so its reserved height is the
+          last thing on the page.
 
+          The footer needs no `shrink-0`: its own `--footer-h` is its height,
+          and a column flex container that only has a MIN height never has to
+          take space back off its items. */}
+      <div className="flex min-h-[100svh] flex-col">
+        {/* The shell — skip link, navbar, scroll progress, footer — is shared
+            by every route, so only the contents of <main> swap. That is what
+            keeps a legal page part of the site rather than a page that merely
+            resembles it, and it is also what keeps the footer reveal working:
+            the reveal depends on the exact ancestor chain described above,
+            which no route may change. */}
+        <main id="main" className="flex-[1_0_auto]">
+          <Page />
+        </main>
+
+        <Footer />
+      </div>
     </LazyMotion>
   )
 }

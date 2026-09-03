@@ -1,7 +1,6 @@
-import { useId, useRef, useState } from 'react'
+import { useCallback, useId, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, m, useInView, useReducedMotion } from 'framer-motion'
 import {
-  
   LuArrowRight,
   LuAtom,
   LuCalendar,
@@ -16,119 +15,267 @@ import {
   LuTag,
   LuTrendingDown,
   LuTrendingUp,
-  
-  
 } from 'react-icons/lu'
 
 import { EASE } from '@/lib/motion'
+import { useTextReveal } from '@/hooks/useTextReveal'
 
 /**
- * The plan, drawn as the app draws it.
+ * The plan, drawn as the app draws it — and the calendar actually works.
  *
- * The large panel is a faithful rebuild of the real My Calendar screen — the
- * month header with its chevrons and Today control, the segmented toggle, the
- * week strip with a tall near-black pill on the selected day and coloured dots
- * beneath each date, the "Agenda" label over a bold date with a count chip, and
- * event rows carrying a tinted icon square, a time chip and tag pills. Every
- * one of those is componentry lifted from the screenshot rather than invented,
- * so the website shows the product a visitor will actually open.
+ * The week strip is a real date picker: click a day and the agenda heading, the
+ * event count, the dots and the list all follow it; the chevrons step the week;
+ * Today jumps back. Arrow keys move between the day cells, Home/End jump to the
+ * ends of the visible week, and the agenda is an `aria-live="polite"` region so
+ * the change is announced without interrupting.
  *
- * It is a rebuild, not an embedded screenshot, because it also has to work:
- *   analysis card → click a finding → the ingredients treating it highlight
- *   plan panel    → click an ingredient → the featured card explains it
- *   summary strip → the scan updates → the recommendations change
+ * It is a marketing mock with no backend, so the schedule is a local dataset
+ * (`SCHEDULE`) covering three weeks around the displayed one. Every item is one
+ * of the six ingredients already on screen, so nothing looks invented.
  *
  * SkinTrix recommends *active ingredients*, never products or brands, so every
  * row is an ingredient, what it targets, and the finding behind it.
+ *
+ * WHY THE PANELS ARE TINTED AND THE CARDS ARE WHITE
+ * White cards on a white panel separated by a hairline read as one flat
+ * surface — the hairline simply is not visible at that contrast. So the panel
+ * takes the page ground and recedes, the cards stay white and come forward, and
+ * elevation does the separating instead of a line.
  */
 
-const TONES = {
-  amber: 'bg-[#FEF4E4] text-[#D98A1F]',
-  teal: 'bg-[color:var(--brand-teal-100)] text-[color:var(--brand-teal-600)]',
-  indigo: 'bg-[#E8E9F9] text-[#5A62D6]',
-  green: 'bg-[#E8F7ED] text-[#1FA45C]',
+/* ===========================================================================
+   Palette
+   =========================================================================== */
+
+/**
+ * The only colours in this file.
+ *
+ * The four INKS are no longer set here — they are `var(--text-*)`, the
+ * site-wide tokens. The values did not change: the navy, body and muted greys
+ * this section was specified with turned out to be exactly the values the whole
+ * site standardised on, which is why this section was the reference for it.
+ * The old note here said this navy was deliberately NOT the site ink; that is
+ * no longer true, and it is the same token everywhere now.
+ *
+ * What remains local is everything that is not type — grounds, tints,
+ * hairlines, and the two non-brand accents the ingredient tiles rotate
+ * through. Text ink never comes from this object; it comes from a `type-*` or
+ * `ink-*` class.
+ */
+const P = {
+  /* The four inks now come from the tokens. Same values this section was
+     specified with — #1EB9B7 / #1A2A5C / #5A6B7B / #94A0AC — so nothing here
+     moves; they simply stop being a private second copy. What still reads
+     them are non-text elements (icon glyphs, tinted pills, hairlines), which
+     is why they stay in this object rather than becoming classes. */
+  teal: 'var(--text-accent)',
+  cyan: '#29A6D3',
+  blue: '#4C71CE',
+  navy: 'var(--text-heading)',
+  body: 'var(--text-body)',
+  muted: 'var(--text-muted)',
+  ground: '#F5F6FD',
+  hairline: '#E2E5F2',
+  tint: '#EDEFFA',
+  tealTint: '#E6F7F6',
+  cyanTint: '#E6F2FA',
+  blueTint: '#ECEFFB',
+  white: '#FFFFFF',
 } as const
 
-type Tone = keyof typeof TONES
+/**
+ * The three OUTER containers. Borderless by request.
+ *
+ * Only these lose the hairline — the cards inside keep theirs, which is what
+ * now draws every edge you see. With no outline of its own a white panel on
+ * the #F5F6FD ground is separated by tone alone, so the shadow picks up the
+ * work the border was doing: a 1px contact line to seat the edge, and a wider
+ * ambient one underneath.
+ */
+const PANEL = {
+  background: P.white,
+  borderRadius: '24px',
+  padding: '24px',
+  boxShadow: '0 1px 2px rgba(13,24,57,.04), 0 10px 34px -18px rgba(13,24,57,.14)',
+} as const
 
-const CONCERNS: { label: string; status: string; dir: 'up' | 'down'; tone: Tone }[] = [
-  { label: 'Pigmentation', status: 'Detected', dir: 'up', tone: 'amber' },
-  { label: 'Texture', status: 'Improving', dir: 'down', tone: 'green' },
-  { label: 'Hydration', status: 'Needs attention', dir: 'up', tone: 'teal' },
+/** The rows and blocks inside a panel. Flat: the hairline does the work. */
+const CARD = {
+  background: P.white,
+  border: `1px solid ${P.hairline}`,
+  borderRadius: '16px',
+  padding: '16px',
+} as const
+
+const CARD_SELECTED = {
+  ...CARD,
+  border: `1.5px solid ${P.teal}`,
+  boxShadow: '0 8px 24px -14px rgba(30,185,183,.35)',
+} as const
+
+/** teal → cyan → blue, by position. Never by status — see the handover. */
+const ROTATION = [
+  { bg: P.tealTint, fg: P.teal },
+  { bg: P.cyanTint, fg: P.cyan },
+  { bg: P.blueTint, fg: P.blue },
+] as const
+const tile = (i: number) => ROTATION[i % ROTATION.length]
+
+/* ===========================================================================
+   Ingredients and the schedule
+   =========================================================================== */
+
+type Slot = 'morning' | 'evening'
+
+/** What the detail panel explains. Keyed by name so the schedule can be flat. */
+const INGREDIENTS: Record<
+  string,
+  { target: string; treats: string[]; insight: string; role: string; Icon: typeof LuSun }
+> = {
+  'Vitamin C': {
+    target: 'Uneven skin tone',
+    treats: ['Pigmentation'],
+    insight: 'Pigmentation detected in your latest scan.',
+    role: 'Brightening and antioxidant support through the day.',
+    Icon: LuSparkles,
+  },
+  Niacinamide: {
+    target: 'Uneven skin tone',
+    treats: ['Pigmentation', 'Hydration'],
+    insight: 'Pigmentation detected in your latest scan.',
+    role: 'Supports a more even-looking complexion and helps strengthen the skin barrier.',
+    Icon: LuAtom,
+  },
+  SPF: {
+    target: 'Sun exposure',
+    treats: ['Pigmentation'],
+    insight: 'Recommended alongside any pigmentation plan.',
+    role: 'Daily protection, so the rest of the plan is not working against new exposure.',
+    Icon: LuSun,
+  },
+  'Azelaic Acid': {
+    target: 'Pigmentation and redness',
+    treats: ['Pigmentation'],
+    insight: 'Pigmentation and visible redness detected in your latest scan.',
+    role: 'Works on uneven tone and visible redness at the same time.',
+    Icon: LuAtom,
+  },
+  'Hyaluronic Acid': {
+    target: 'Hydration',
+    treats: ['Hydration'],
+    insight: 'Lower hydration readings across the cheeks.',
+    role: 'Helps the skin hold water, so the surface looks plumper and calmer overnight.',
+    Icon: LuDroplet,
+  },
+  Ceramides: {
+    target: 'Skin barrier',
+    treats: ['Hydration', 'Texture'],
+    insight: 'Paired with actives to keep the barrier comfortable.',
+    role: 'Helps the barrier stay resilient while stronger actives are in use.',
+    Icon: LuShieldCheck,
+  },
+}
+
+type Entry = { name: string; subtitle: string; time: string; slot: Slot }
+
+/* The six routine shapes the generated weeks draw from. */
+const AM_FULL: Entry[] = [
+  { name: 'Vitamin C', subtitle: 'For pigmentation', time: '7:00 AM', slot: 'morning' },
+  { name: 'Niacinamide', subtitle: 'For uneven tone', time: '7:10 AM', slot: 'morning' },
+  { name: 'SPF', subtitle: 'Daily protection', time: '7:20 AM', slot: 'morning' },
+]
+const AM_LIGHT: Entry[] = [
+  { name: 'Niacinamide', subtitle: 'For uneven tone', time: '7:10 AM', slot: 'morning' },
+  { name: 'SPF', subtitle: 'Daily protection', time: '7:20 AM', slot: 'morning' },
+]
+const PM_FULL: Entry[] = [
+  { name: 'Azelaic Acid', subtitle: 'For pigmentation + redness', time: '9:00 PM', slot: 'evening' },
+  { name: 'Hyaluronic Acid', subtitle: 'For hydration', time: '9:10 PM', slot: 'evening' },
+  { name: 'Ceramides', subtitle: 'For barrier support', time: '9:20 PM', slot: 'evening' },
+]
+const PM_LIGHT: Entry[] = [
+  { name: 'Hyaluronic Acid', subtitle: 'For hydration', time: '9:10 PM', slot: 'evening' },
+  { name: 'Ceramides', subtitle: 'For barrier support', time: '9:20 PM', slot: 'evening' },
 ]
 
-type Ingredient = {
-  name: string
-  short: string
-  /** Demo schedule, shown in the app's time-chip style. */
-  time: string
-  tag: string
-  target: string
-  treats: string[]
-  insight: string
-  role: string
-  Icon: typeof LuSun
-  tone: Tone
+/* ---- dates, as plain ISO strings. No date library, no new dependency. ---- */
+
+const iso = (d: Date) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+
+const fromIso = (s: string) => {
+  const [y, m, d] = s.split('-').map(Number)
+  return new Date(y, m - 1, d)
 }
 
-const PLAN: Record<'morning' | 'evening', Ingredient[]> = {
-  morning: [
-    {
-      name: 'Vitamin C', short: 'For pigmentation', time: '7:00 AM', tag: 'Morning',
-      target: 'Uneven skin tone', treats: ['Pigmentation'],
-      insight: 'Pigmentation detected in your latest scan.',
-      role: 'Brightening and antioxidant support through the day.',
-      Icon: LuSparkles, tone: 'amber',
-    },
-    {
-      name: 'Niacinamide', short: 'For uneven tone', time: '7:10 AM', tag: 'Morning',
-      target: 'Uneven skin tone', treats: ['Pigmentation', 'Hydration'],
-      insight: 'Pigmentation detected in your latest scan.',
-      role: 'Supports a more even-looking complexion and helps strengthen the skin barrier.',
-      Icon: LuAtom, tone: 'teal',
-    },
-    {
-      name: 'SPF', short: 'Daily protection', time: '7:20 AM', tag: 'Morning',
-      target: 'Sun exposure', treats: ['Pigmentation'],
-      insight: 'Recommended alongside any pigmentation plan.',
-      role: 'Daily protection, so the rest of the plan is not working against new exposure.',
-      Icon: LuSun, tone: 'amber',
-    },
-  ],
-  evening: [
-    {
-      name: 'Azelaic Acid', short: 'For pigmentation + redness', time: '9:00 PM', tag: 'Evening',
-      target: 'Pigmentation and redness', treats: ['Pigmentation'],
-      insight: 'Pigmentation and visible redness detected in your latest scan.',
-      role: 'Works on uneven tone and visible redness at the same time.',
-      Icon: LuAtom, tone: 'indigo',
-    },
-    {
-      name: 'Hyaluronic Acid', short: 'For hydration', time: '9:10 PM', tag: 'Evening',
-      target: 'Hydration', treats: ['Hydration'],
-      insight: 'Lower hydration readings across the cheeks.',
-      role: 'Helps the skin hold water, so the surface looks plumper and calmer overnight.',
-      Icon: LuDroplet, tone: 'teal',
-    },
-    {
-      name: 'Ceramides', short: 'For barrier support', time: '9:20 PM', tag: 'Evening',
-      target: 'Skin barrier', treats: ['Hydration', 'Texture'],
-      insight: 'Paired with actives to keep the barrier comfortable.',
-      role: 'Helps the barrier stay resilient while stronger actives are in use.',
-      Icon: LuShieldCheck, tone: 'green',
-    },
-  ],
+const addDays = (s: string, n: number) => {
+  const d = fromIso(s)
+  d.setDate(d.getDate() + n)
+  return iso(d)
 }
 
-/** The app's own week: Mon 3 through Sun 9, Tue 4 selected. */
-const WEEK = [
-  { day: 'Mon', date: 3, dots: ['#E8A33D', '#1FA45C', '#5A62D6'] },
-  { day: 'Tue', date: 4, dots: ['#E8A33D', '#1FA45C', '#5A62D6'] },
-  { day: 'Wed', date: 5, dots: ['#E8A33D', '#1FA45C', '#5A62D6'] },
-  { day: 'Thu', date: 6, dots: ['#E8A33D', '#1FA45C', '#5A62D6'] },
-  { day: 'Fri', date: 7, dots: ['#E8A33D', '#5A62D6'] },
-  { day: 'Sat', date: 8, dots: ['#E8A33D', '#1FA45C', '#5A62D6'] },
-  { day: 'Sun', date: 9, dots: ['#E8A33D', '#1FA45C'] },
+/** The Monday of whatever week `s` falls in. */
+const mondayOf = (s: string) => {
+  const d = fromIso(s)
+  const shift = (d.getDay() + 6) % 7
+  d.setDate(d.getDate() - shift)
+  return iso(d)
+}
+
+const WEEKDAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+const SHORT = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+const MONTHS = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December',
+]
+const MONTHS_SHORT = [
+  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+]
+
+/**
+ * The mock's "today". Fixed rather than `new Date()` so the screenshot, the
+ * copy and the Today button always agree — a real clock would make this
+ * section show an empty week the moment the dataset's range passed.
+ */
+const TODAY = '2026-08-04'
+
+/**
+ * Three weeks around the displayed one, keyed by ISO date.
+ *
+ * Built from the routine shapes rather than typed out day by day: a rest day
+ * every Sunday (nothing in the evening), a lighter morning midweek. The point
+ * is that some days are full, some are partial and some are empty, so the
+ * empty state and the dot counts are reachable by clicking rather than
+ * theoretical.
+ */
+const SCHEDULE: Record<string, Entry[]> = (() => {
+  const out: Record<string, Entry[]> = {}
+  const start = addDays(mondayOf(TODAY), -7)
+  for (let i = 0; i < 21; i++) {
+    const day = addDays(start, i)
+    const dow = fromIso(day).getDay() // 0 = Sunday
+    if (dow === 0) {
+      /* Sunday: morning only — the deliberate empty-evening case. */
+      out[day] = [...AM_LIGHT]
+    } else if (dow === 3) {
+      out[day] = [...AM_LIGHT, ...PM_LIGHT]
+    } else if (dow === 6) {
+      /* Saturday: evening only — the empty-morning case. */
+      out[day] = [...PM_FULL]
+    } else {
+      out[day] = [...AM_FULL, ...PM_FULL]
+    }
+  }
+  return out
+})()
+
+const itemsOn = (day: string, slot: Slot) => (SCHEDULE[day] ?? []).filter((e) => e.slot === slot)
+const countOn = (day: string) => (SCHEDULE[day] ?? []).length
+
+const CONCERNS: { label: string; status: string; dir: 'up' | 'down' }[] = [
+  { label: 'Pigmentation', status: 'Detected', dir: 'up' },
+  { label: 'Texture', status: 'Improving', dir: 'down' },
+  { label: 'Hydration', status: 'Needs attention', dir: 'up' },
 ]
 
 const CHANGES = [
@@ -136,26 +283,85 @@ const CHANGES = [
   { label: 'Texture', note: 'Improving', dir: 'down' as const },
 ]
 
-const WEEKDAY = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
-
-const ALL = [...PLAN.morning, ...PLAN.evening]
-
+/* ===========================================================================
+   Section
+   =========================================================================== */
 
 export function SkinPlan() {
+  /* Word-by-word GSAP reveal on the section heading. */
+  const headingRef = useTextReveal<HTMLHeadingElement>()
   const ref = useRef<HTMLDivElement>(null)
   const reduced = useReducedMotion()
   const inView = useInView(ref, { once: true, amount: 0.2 })
   const show = reduced || inView
   const baseId = useId()
 
-  const [mode, setMode] = useState<'morning' | 'evening'>('morning')
-  const [day, setDay] = useState(1)
-  const [selected, setSelected] = useState('Niacinamide')
-  const [focus, setFocus] = useState<string | null>(null)
+  const [slot, setSlot] = useState<Slot>('morning')
+  const [selectedDate, setSelectedDate] = useState(TODAY)
+  const [weekStart, setWeekStart] = useState(() => mondayOf(TODAY))
+  const [selectedName, setSelectedName] = useState<string | null>('Niacinamide')
+  const [focusConcern, setFocusConcern] = useState<string | null>(null)
   const [showChanges, setShowChanges] = useState(false)
 
-  const items = PLAN[mode]
-  const featured = ALL.find((i) => i.name === selected) ?? PLAN.morning[1]
+  /** The seven cells of the visible week. */
+  const week = useMemo(
+    () => Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)),
+    [weekStart],
+  )
+
+  const items = useMemo(() => itemsOn(selectedDate, slot), [selectedDate, slot])
+
+  /* The detail panel follows the clicked row, but falls back to the first item
+     of whatever is on screen — otherwise picking a day that does not include
+     the previously selected ingredient would leave the panel describing
+     something no longer in the list. */
+  const featuredName =
+    selectedName && items.some((i) => i.name === selectedName)
+      ? selectedName
+      : (items[0]?.name ?? null)
+  const featured = featuredName ? INGREDIENTS[featuredName] : null
+  const featuredIndex = Math.max(
+    0,
+    items.findIndex((i) => i.name === featuredName),
+  )
+
+  /** The month shown by the header: the visible week's midpoint, so a week
+      straddling two months takes the one holding most of it. */
+  const midWeek = fromIso(addDays(weekStart, 3))
+  const monthLabel = `${MONTHS_SHORT[midWeek.getMonth()]} ${midWeek.getFullYear()}`
+
+  const selDate = fromIso(selectedDate)
+  const agendaHeading = `${WEEKDAYS[(selDate.getDay() + 6) % 7]}, ${MONTHS[selDate.getMonth()]} ${selDate.getDate()}`
+
+  /* ---- week stepping. Selection follows into the new week. ---- */
+  const stepWeek = (dir: -1 | 1) => {
+    const next = addDays(weekStart, dir * 7)
+    setWeekStart(next)
+    const stillVisible = Array.from({ length: 7 }, (_, i) => addDays(next, i)).includes(
+      selectedDate,
+    )
+    if (!stillVisible) setSelectedDate(next)
+  }
+
+  const goToday = () => {
+    setWeekStart(mondayOf(TODAY))
+    setSelectedDate(TODAY)
+  }
+
+  /* ---- keyboard on the date strip ---- */
+  const dayRefs = useRef<(HTMLButtonElement | null)[]>([])
+  const onStripKey = useCallback((e: React.KeyboardEvent, i: number) => {
+    const move = (to: number) => {
+      e.preventDefault()
+      const clamped = Math.max(0, Math.min(6, to))
+      dayRefs.current[clamped]?.focus()
+    }
+    if (e.key === 'ArrowRight') move(i + 1)
+    else if (e.key === 'ArrowLeft') move(i - 1)
+    else if (e.key === 'Home') move(0)
+    else if (e.key === 'End') move(6)
+    /* Enter and Space are already a button's own activation — nothing to add. */
+  }, [])
 
   const rise = (delay: number) => ({
     initial: reduced ? false : { opacity: 0, y: 14 },
@@ -163,280 +369,475 @@ export function SkinPlan() {
     transition: { duration: 0.65, delay: reduced ? 0 : delay, ease: EASE },
   })
 
-  const card = 'rounded-[1.5rem] bg-surface p-5 ring-1 ring-[color:rgb(9_24_56_/_0.07)] sm:p-6'
+  const focusRing = {
+    outlineColor: P.teal,
+  }
 
   return (
-    <section id="skin-plan" aria-labelledby="skin-plan-heading" className="section-y relative" style={{ background: 'var(--atm-cyan)' }}>
+    <section
+      id="skin-plan"
+      aria-labelledby="skin-plan-heading"
+      /* `ink-body` as well as the background: without a container ink the
+         section inherits the page's body grey, which is a bluer tone than the
+         brand body colour. It used to be an inline `color: P.body`. */
+      className="section-y ink-body relative"
+      style={{ background: P.ground }}
+    >
       <div ref={ref} className="shell">
-        <div className="max-w-[38rem]">
-          <m.p className="text-eyebrow text-teal-deep" {...rise(0)}>
+        <div className="measure-header" style={{ marginInline: '0 auto' }}>
+          <m.p className="text-eyebrow" {...rise(0)}>
             My Skincare Plan
           </m.p>
-          <m.h2 id="skin-plan-heading" className="text-statement mt-4" {...rise(0.06)}>
+          <h2 ref={headingRef} id="skin-plan-heading" className="text-statement mt-4">
             A routine built around your skin.
-          </m.h2>
-          <m.p className="mt-5 text-[0.9375rem] leading-[1.8] text-ink-soft" {...rise(0.12)}>
+          </h2>
+          <m.p
+            className="text-lead measure-body mt-5"
+            {...rise(0.12)}
+          >
             SkinTrix turns your latest skin analysis into a personalized plan built around the
             active ingredients your skin needs.
           </m.p>
-          <m.p className="text-eyebrow mt-6 flex items-center gap-2 text-ink-muted" {...rise(0.18)}>
-            <LuSparkles aria-hidden className="h-3.5 w-3.5 text-teal-deep" />
-            Tap an ingredient to see why it&rsquo;s recommended
+          <m.p
+            className="text-eyebrow ink-muted mt-6 flex items-center gap-2"
+            {...rise(0.18)}
+          >
+            <LuSparkles aria-hidden className="h-3.5 w-3.5" style={{ color: P.teal }} />
+            Tap a date or an ingredient to explore the plan
           </m.p>
         </div>
 
         <div className="mt-12 grid gap-5 lg:mt-16 lg:grid-cols-12">
-          {/* The app screen, rebuilt. Light ground, white cards on top. */}
+          {/* ── the calendar panel ─────────────────────────────────────── */}
           <m.div
-            className="overflow-clip rounded-[1.5rem] bg-[#F0F1F3] p-4 ring-1 ring-[color:rgb(9_24_56_/_0.07)] sm:p-5 lg:col-span-7 lg:row-span-2"
+            className="overflow-clip lg:col-span-7 lg:row-span-2"
+            style={PANEL}
             {...rise(0.24)}
           >
-            {/* Month header, as the app has it. */}
-            <div className="rounded-[1.25rem] bg-surface p-4">
+            {/* Month header + toggle + week strip: one white card. */}
+            <div data-card style={CARD}>
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2">
-                  <span aria-hidden className="grid h-8 w-8 place-items-center rounded-full bg-[#F0F1F3] text-ink-soft">
-                    <LuChevronLeft className="h-4 w-4" />
-                  </span>
-                  <span aria-hidden className="grid h-8 w-8 place-items-center rounded-full bg-[#F0F1F3] text-ink-soft">
-                    <LuChevronRight className="h-4 w-4" />
-                  </span>
-                  <span className="ml-1 flex items-center gap-2 text-[0.9375rem] leading-none font-bold tracking-[-0.01em]">
-                    <LuCalendar aria-hidden className="h-4 w-4 text-ink-soft" />
-                    Aug 2026
+                  <button
+                    type="button"
+                    aria-label="Previous week"
+                    onClick={() => stepWeek(-1)}
+                    className="grid h-8 w-8 cursor-pointer place-items-center rounded-full transition-colors duration-150 focus-visible:outline-2 focus-visible:-outline-offset-2"
+                    style={{ background: P.tint, color: P.body, ...focusRing }}
+                  >
+                    <LuChevronLeft aria-hidden className="h-4 w-4" />
+                  </button>
+                  <button
+                    type="button"
+                    aria-label="Next week"
+                    onClick={() => stepWeek(1)}
+                    className="grid h-8 w-8 cursor-pointer place-items-center rounded-full transition-colors duration-150 focus-visible:outline-2 focus-visible:-outline-offset-2"
+                    style={{ background: P.tint, color: P.body, ...focusRing }}
+                  >
+                    <LuChevronRight aria-hidden className="h-4 w-4" />
+                  </button>
+                  <span
+                    className="type-body ink-heading ml-1 flex items-center gap-2"
+                  >
+                    <LuCalendar aria-hidden className="h-4 w-4" style={{ color: P.body }} />
+                    {monthLabel}
                   </span>
                 </div>
-                <span className="rounded-full bg-surface px-3.5 py-2 text-[0.8125rem] leading-none font-semibold text-ink ring-1 ring-[color:rgb(9_24_56_/_0.1)]">
+                <button
+                  type="button"
+                  onClick={goToday}
+                  className="type-legal ink-heading cursor-pointer rounded-btn px-3.5 py-2 transition-colors duration-150 focus-visible:outline-2 focus-visible:-outline-offset-2"
+                  style={{
+                    background: P.white,
+                    border: `1px solid ${P.hairline}`,
+                    ...focusRing,
+                  }}
+                >
                   Today
-                </span>
+                </button>
               </div>
 
-              {/* Segmented control, near-black active — the app's Weekly/Monthly
-                  treatment, carrying this section's Morning/Evening states. */}
-              <div role="group" aria-label="Choose part of day" className="mt-4 flex gap-2">
+              {/* The track carries the tint; the active segment is teal. */}
+              <div
+                role="group"
+                aria-label="Choose part of day"
+                className="mt-4 flex gap-2 rounded-full p-1"
+                style={{ background: P.tint }}
+              >
                 {(['morning', 'evening'] as const).map((k) => (
                   <button
                     key={k}
                     type="button"
-                    aria-pressed={mode === k}
-                    onClick={() => setMode(k)}
-                    className={
-                      'flex-1 cursor-pointer rounded-full py-3 text-[0.9375rem] leading-none font-bold capitalize transition-colors duration-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--color-primary)] ' +
-                      (mode === k ? 'bg-ink text-white' : 'bg-[#F0F1F3] text-ink-soft hover:text-ink')
-                    }
+                    aria-pressed={slot === k}
+                    onClick={() => setSlot(k)}
+                    className={`type-body ${slot === k ? 'ink-invert' : 'ink-body'} flex-1 cursor-pointer rounded-full py-2.5 capitalize transition-colors duration-150 focus-visible:outline-2 focus-visible:-outline-offset-2`}
+                    style={{
+                      background: slot === k ? P.teal : 'transparent',
+                      ...focusRing,
+                    }}
                   >
                     {k}
                   </button>
                 ))}
               </div>
 
-              {/* Week strip: tall near-black pill on the selected day, dots under. */}
-              <div role="group" aria-label="Choose a day" className="mt-4 flex justify-between gap-0.5">
-                {WEEK.map((d, i) => (
-                  <button
-                    key={d.day}
-                    type="button"
-                    aria-pressed={day === i}
-                    onClick={() => setDay(i)}
-                    className={
-                      'flex min-w-0 flex-1 cursor-pointer flex-col items-center gap-1.5 rounded-full px-0.5 py-2.5 transition-colors duration-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--color-primary)] ' +
-                      (day === i ? 'bg-ink text-white' : 'text-ink-muted hover:text-ink')
-                    }
-                  >
-                    <span className="text-[0.6875rem] leading-none font-semibold">{d.day}</span>
-                    <span className={'text-[1rem] leading-none font-bold ' + (day === i ? 'text-white' : 'text-ink')}>
-                      {d.date}
-                    </span>
-                    <span aria-hidden className="flex gap-0.5">
-                      {d.dots.map((c, k) => (
-                        <span
-                          key={k}
-                          className="h-1 w-1 rounded-full"
-                          style={{ background: day === i ? '#FFFFFF' : c }}
-                        />
-                      ))}
-                    </span>
-                  </button>
-                ))}
+              {/* The date strip — seven real buttons. */}
+              <div
+                role="group"
+                aria-label="Select a date"
+                className="mt-4 flex justify-between gap-0.5"
+              >
+                {week.map((day, i) => {
+                  const d = fromIso(day)
+                  const isSel = day === selectedDate
+                  const dots = Math.min(3, countOn(day))
+                  return (
+                    <button
+                      key={day}
+                      ref={(el) => {
+                        dayRefs.current[i] = el
+                      }}
+                      type="button"
+                      aria-pressed={isSel}
+                      /* The visible text is only "Mon 3", so the full date has
+                         to be spoken. */
+                      aria-label={`${WEEKDAYS[(d.getDay() + 6) % 7]}, ${MONTHS[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`}
+                      onClick={() => setSelectedDate(day)}
+                      onKeyDown={(e) => onStripKey(e, i)}
+                      className="flex min-w-0 flex-1 cursor-pointer flex-col items-center gap-1.5 px-0.5 py-2.5 transition-colors duration-150 focus-visible:outline-2 focus-visible:-outline-offset-2"
+                      style={{
+                        background: isSel ? P.teal : 'transparent',
+                        borderRadius: '16px',
+                        ...focusRing,
+                      }}
+                    >
+                      <span
+                        className={`type-legal ${isSel ? 'ink-invert' : 'ink-muted'}`}
+                      >
+                        {SHORT[i]}
+                      </span>
+                      <span
+                        className={`type-body ${isSel ? 'ink-invert' : 'ink-heading'}`}
+                      >
+                        {d.getDate()}
+                      </span>
+                      {/* One dot per item, capped at three. A day with nothing
+                          scheduled shows none — the row is not padded out. */}
+                      <span aria-hidden className="flex h-1 gap-0.5">
+                        {Array.from({ length: dots }, (_, k) => (
+                          <span
+                            key={k}
+                            className="h-1 w-1 rounded-full"
+                            style={{
+                              background: isSel ? P.white : P.teal,
+                              opacity: isSel ? 0.7 : 0.45,
+                            }}
+                          />
+                        ))}
+                      </span>
+                    </button>
+                  )
+                })}
               </div>
             </div>
 
-            {/* Agenda header, as the app has it. */}
+            {/* Agenda header. */}
             <div className="mt-5 flex items-end justify-between gap-3 px-1">
               <div>
-                <p className="text-[0.8125rem] leading-none font-semibold text-ink-muted">Agenda</p>
-                <p className="mt-2 text-[1.125rem] leading-none font-bold tracking-[-0.02em]">
-                  {WEEKDAY[day]}, August {WEEK[day].date}
+                <p className="type-legal ink-muted">
+                  Agenda
+                </p>
+                <p
+                  className="type-card-title ink-heading mt-2"
+                >
+                  {agendaHeading}
                 </p>
               </div>
-              <span className="flex shrink-0 items-center gap-1.5 rounded-full bg-[#DEF5F4] px-3 py-2 text-[0.8125rem] leading-none font-semibold text-[#118483]">
+              <span
+                className="type-legal ink-accent flex shrink-0 items-center gap-1.5 rounded-full px-3 py-2"
+                style={{ background: P.tealTint }}
+              >
                 <LuCalendar aria-hidden className="h-3.5 w-3.5" />
-                {items.length} events
+                {countOn(selectedDate)} events
               </span>
             </div>
 
-            {/* Event rows: icon square, title, time chip, tag pills. */}
-            <div className="mt-4 min-h-[19rem]">
+            {/* The reserve is sized to the FULLEST day, not to a round number.
+                At 19rem it sat below the natural height of a three-row day, so
+                picking an empty day shrank the region by 64px and dragged the
+                rest of the page up with it — measured, not guessed. Narrow
+                screens need more because the rows wrap. */}
+            <div
+              id={`${baseId}-agenda`}
+              aria-live="polite"
+              className="mt-4 min-h-[29.75rem] sm:min-h-[25.5rem]"
+            >
               <AnimatePresence mode="wait" initial={false}>
                 <m.ul
-                  key={mode}
+                  key={`${selectedDate}-${slot}`}
                   initial={reduced ? false : { opacity: 0, y: 6 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={reduced ? undefined : { opacity: 0, y: -6 }}
                   transition={{ duration: 0.26, ease: EASE }}
                   className="space-y-3"
                 >
-                  {items.map((ing) => {
-                    const isSelected = selected === ing.name
-                    const dimmed = focus !== null && !ing.treats.includes(focus)
-                    return (
-                      <li key={ing.name}>
-                        <m.button
-                          type="button"
-                          aria-pressed={isSelected}
-                          onClick={() => setSelected(ing.name)}
-                          animate={{ opacity: dimmed ? 0.4 : 1 }}
-                          transition={{ duration: 0.3, ease: EASE }}
-                          className={
-                            'w-full cursor-pointer rounded-[1.25rem] bg-surface p-4 text-left transition-shadow duration-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--color-primary)] ' +
-                            (isSelected ? 'ring-2 ring-[color:var(--color-primary)]' : 'ring-1 ring-[color:rgb(9_24_56_/_0.05)] hover:ring-[color:rgb(9_24_56_/_0.14)]')
-                          }
-                        >
-                          <span className="flex items-start gap-3">
-                            <span
-                              aria-hidden
-                              className={`grid h-11 w-11 shrink-0 place-items-center rounded-2xl ${TONES[ing.tone]}`}
-                            >
-                              <ing.Icon className="h-5 w-5" />
-                            </span>
-                            <span className="min-w-0 flex-1">
-                              <span className="block text-[1.0625rem] leading-tight font-bold tracking-[-0.015em]">
-                                {ing.name}
+                  {items.length === 0 ? (
+                    <li>
+                      <p className="type-body ink-muted">
+                        No items scheduled for this {slot === 'morning' ? 'morning' : 'evening'}.
+                      </p>
+                    </li>
+                  ) : (
+                    items.map((entry, idx) => {
+                      const ing = INGREDIENTS[entry.name]
+                      const isSel = featuredName === entry.name
+                      const dimmed =
+                        focusConcern !== null && !ing.treats.includes(focusConcern)
+                      return (
+                        <li key={entry.name + entry.time}>
+                          <m.button
+                            type="button"
+                            aria-pressed={isSel}
+                            onClick={() => setSelectedName(entry.name)}
+                            animate={{ opacity: dimmed ? 0.4 : 1 }}
+                            transition={{ duration: 0.3, ease: EASE }}
+                            data-card
+                            className="w-full cursor-pointer text-left transition-shadow duration-150 focus-visible:outline-2 focus-visible:-outline-offset-2"
+                            style={{
+                              ...(isSel ? CARD_SELECTED : CARD),
+                              /* Unselected rows carried no shadow before, and
+                                 they carry none now — the hairline separates
+                                 them. Stated explicitly so the spread above
+                                 cannot leak a shadow in from CARD_SELECTED. */
+                              boxShadow: isSel ? CARD_SELECTED.boxShadow : 'none',
+                              ...focusRing,
+                            }}
+                          >
+                            <span className="flex items-start gap-3">
+                              <span
+                                aria-hidden
+                                className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl"
+                                style={{ background: tile(idx).bg, color: tile(idx).fg }}
+                              >
+                                <ing.Icon className="h-5 w-5" />
                               </span>
-                              <span className="mt-1 block text-[0.875rem] leading-tight text-ink-soft">
-                                {ing.short}
+                              <span className="min-w-0 flex-1">
+                                <span
+                                  className="type-card-title ink-heading block"
+                                >
+                                  {entry.name}
+                                </span>
+                                <span
+                                  className="type-small mt-1 block"
+                                >
+                                  {entry.subtitle}
+                                </span>
+                              </span>
+                              <span
+                                className="type-legal ink-heading flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1.5"
+                                style={{ background: P.tint }}
+                              >
+                                <LuClock aria-hidden className="h-3.5 w-3.5" style={{ color: P.body }} />
+                                {entry.time}
                               </span>
                             </span>
-                            <span
-                              className={`flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1.5 text-[0.8125rem] leading-none font-semibold ${TONES[ing.tone]}`}
-                            >
-                              <LuClock aria-hidden className="h-3.5 w-3.5" />
-                              {ing.time}
-                            </span>
-                          </span>
 
-                          <span className="mt-3 flex flex-wrap items-center gap-2 pl-14">
-                            <span
-                              className={`flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-[0.75rem] leading-none font-semibold ${TONES[ing.tone]}`}
-                            >
-                              <LuTag aria-hidden className="h-3 w-3" />
-                              {ing.tag}
+                            <span className="mt-3 flex flex-wrap items-center gap-2 pl-14">
+                              <span
+                                className="type-legal ink-body flex items-center gap-1.5 rounded-full px-2.5 py-1.5 capitalize"
+                                style={{
+                                  background: 'transparent',
+                                  border: `1px solid ${P.hairline}`,
+                                }}
+                              >
+                                <LuTag aria-hidden className="h-3 w-3" style={{ color: P.muted }} />
+                                {entry.slot}
+                              </span>
+                              <span
+                                className="type-legal ink-body flex items-center gap-1.5 rounded-full px-2.5 py-1.5"
+                                style={{
+                                  background: 'transparent',
+                                  border: `1px solid ${P.hairline}`,
+                                }}
+                              >
+                                <LuRepeat aria-hidden className="h-3 w-3" style={{ color: P.muted }} />
+                                Daily
+                              </span>
                             </span>
-                            <span className="flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-[0.75rem] leading-none font-medium text-ink-muted ring-1 ring-[color:rgb(9_24_56_/_0.1)]">
-                              <LuRepeat aria-hidden className="h-3 w-3" />
-                              Daily
-                            </span>
-                          </span>
-                        </m.button>
-                      </li>
-                    )
-                  })}
+                          </m.button>
+                        </li>
+                      )
+                    })
+                  )}
                 </m.ul>
               </AnimatePresence>
             </div>
           </m.div>
 
-          {/* Featured ingredient — the explanation for whatever is selected. */}
-          <m.div className={`${card} lg:col-span-5`} {...rise(0.32)} aria-live="polite">
-            <div className="flex items-start gap-3.5">
-              <span
-                aria-hidden
-                className={`grid h-11 w-11 shrink-0 place-items-center rounded-2xl ${TONES[featured.tone]}`}
-              >
-                <featured.Icon className="h-5 w-5" />
-              </span>
-              <div className="min-w-0 flex-1">
-                <p className="text-eyebrow text-ink-muted">{featured.tag}</p>
-                <h3 className="mt-1 text-[1.375rem] leading-none font-bold tracking-[-0.025em]">
-                  {featured.name}
-                </h3>
-              </div>
-            </div>
+          {/* ── the detail panel ───────────────────────────────────────── */}
+          {/* The reserve here is measured, not chosen. Across every day, slot
+              and row this panel runs 333–349px at 1440, 349–371px at 1024 and
+              371–394px at 375 — and drops to 203px (93px on a phone) when the
+              slot is empty and it falls back to one line. Without a floor,
+              picking an empty evening moved everything below it by up to
+              307px. 25rem covers the worst case; the lg floor is 23.5rem
+              because 1024 wraps harder than 1440 does. */}
+          <m.div
+            className="min-h-[25rem] lg:col-span-5 lg:min-h-[23.5rem]"
+            style={PANEL}
+            {...rise(0.32)}
+            aria-live="polite"
+          >
+            {featured && featuredName ? (
+              <>
+                <div className="flex items-start gap-3.5">
+                  <span
+                    aria-hidden
+                    className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl"
+                    style={{ background: tile(featuredIndex).bg, color: tile(featuredIndex).fg }}
+                  >
+                    <featured.Icon className="h-5 w-5" />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-eyebrow">
+                      {slot}
+                    </p>
+                    <h3
+                      className="type-card-title ink-heading mt-1"
+                    >
+                      {featuredName}
+                    </h3>
+                  </div>
+                </div>
 
-            <dl className="mt-5 space-y-3.5">
-              <div>
-                <dt className="text-[0.75rem] leading-none font-semibold text-ink-muted uppercase">Target</dt>
-                <dd className="mt-1.5 text-[0.875rem] leading-[1.6] text-ink-soft">{featured.target}</dd>
-              </div>
-              <div>
-                <dt className="text-[0.75rem] leading-none font-semibold text-ink-muted uppercase">Why it's recommended</dt>
-                <dd className="mt-1.5 text-[0.875rem] leading-[1.6] text-ink-soft">{featured.insight}</dd>
-              </div>
-              <div>
-                <dt className="text-[0.75rem] leading-none font-semibold text-ink-muted uppercase">What it does</dt>
-                <dd className="mt-1.5 text-[0.875rem] leading-[1.6] text-ink-soft">{featured.role}</dd>
-              </div>
-            </dl>
+                <dl className="mt-5 space-y-3.5">
+                  {(
+                    [
+                      ['Target', featured.target],
+                      ["Why it's recommended", featured.insight],
+                      ['What it does', featured.role],
+                    ] as const
+                  ).map(([label, value]) => (
+                    <div key={label}>
+                      <dt
+                        className="type-eyebrow ink-muted"
+                      >
+                        {label}
+                      </dt>
+                      <dd className="type-small mt-1.5">
+                        {value}
+                      </dd>
+                    </div>
+                  ))}
+                </dl>
 
-            <a
-              href="#skin-plan"
-              className="mt-5 inline-flex items-center gap-1.5 text-[0.8125rem] leading-none font-semibold text-teal-deep transition-colors duration-300 hover:text-ink"
-            >
-              View skin insight
-              <LuArrowRight aria-hidden className="h-3.5 w-3.5" />
-            </a>
+                {/* Decoration, not a link. It used to be <a href="#skin-plan">,
+                    pointing at the section it already sits in, so it went
+                    nowhere — and there is no insight view to send anyone to. */}
+                <span
+                  aria-hidden="true"
+                  className="type-legal ink-accent mt-5 inline-flex items-center gap-1.5"
+                >
+                  View skin insight
+                  <LuArrowRight className="h-3.5 w-3.5" />
+                </span>
+              </>
+            ) : (
+              <p className="type-body ink-muted">
+                Select an ingredient to see why it&rsquo;s recommended.
+              </p>
+            )}
           </m.div>
 
-          {/* Skin analysis — the concerns the plan above is built to treat, which
-              is the link between insight and plan. */}
-          <m.div className={`${card} lg:col-span-5`} {...rise(0.4)}>
-            <div className="flex items-center justify-between gap-3">
-              <h3 className="text-[1.0625rem] leading-none font-bold tracking-[-0.02em]">Skin analysis</h3>
-            </div>
+          {/* ── the analysis panel ─────────────────────────────────────── */}
+          <m.div className="lg:col-span-5" style={PANEL} {...rise(0.4)}>
+            <h3
+              className="type-card-title ink-heading"
+            >
+              Skin analysis
+            </h3>
 
             <ul className="mt-4 space-y-2.5">
-              {CONCERNS.map((c) => (
+              {CONCERNS.map((c, ci) => (
                 <li key={c.label}>
                   <button
                     type="button"
-                    onMouseEnter={() => setFocus(c.label)}
-                    onMouseLeave={() => setFocus(null)}
-                    className="flex w-full cursor-pointer items-center gap-3 rounded-2xl p-2.5 text-left transition-colors duration-300 hover:bg-canvas"
+                    onMouseEnter={() => setFocusConcern(c.label)}
+                    onMouseLeave={() => setFocusConcern(null)}
+                    onFocus={() => setFocusConcern(c.label)}
+                    onBlur={() => setFocusConcern(null)}
+                    className="flex w-full cursor-pointer items-center gap-3 rounded-2xl p-2.5 text-left transition-colors duration-150 focus-visible:outline-2 focus-visible:-outline-offset-2"
+                    style={{ background: 'transparent', ...focusRing }}
                   >
+                    {/* The arrow direction carries the meaning; the tile follows
+                        the same rotation as the plan rows. No red or green. */}
                     <span
                       aria-hidden
-                      className={'grid h-9 w-9 shrink-0 place-items-center rounded-xl ' + TONES[c.tone]}
+                      className="grid h-9 w-9 shrink-0 place-items-center rounded-xl"
+                      style={{ background: tile(ci).bg, color: tile(ci).fg }}
                     >
-                      {c.dir === 'up' ? <LuTrendingUp className="h-4 w-4" /> : <LuTrendingDown className="h-4 w-4" />}
+                      {c.dir === 'up' ? (
+                        <LuTrendingUp className="h-4 w-4" />
+                      ) : (
+                        <LuTrendingDown className="h-4 w-4" />
+                      )}
                     </span>
                     <span className="min-w-0 flex-1">
-                      <span className="block text-[0.9375rem] leading-tight font-bold tracking-[-0.01em]">{c.label}</span>
-                      <span className="mt-1 block text-[0.8125rem] leading-tight text-ink-soft">{c.status}</span>
+                      <span
+                        className="type-body ink-heading block"
+                      >
+                        {c.label}
+                      </span>
+                      <span
+                        className="type-legal ink-body mt-1 block"
+                      >
+                        {c.status}
+                      </span>
                     </span>
                   </button>
                 </li>
               ))}
             </ul>
 
-            <div className="mt-5 border-t border-ink-line pt-4">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-[0.9375rem] leading-tight font-bold tracking-[-0.01em]">Your latest scan</p>
-                  <p className="mt-2 text-[0.8125rem] leading-none font-medium text-ink-soft">
-                    2 skin insights changed
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  aria-expanded={showChanges}
-                  aria-controls={`${baseId}-changes`}
-                  onClick={() => setShowChanges((v) => !v)}
-                  className="mt-3 inline-flex min-h-9 cursor-pointer items-center gap-1.5 rounded-full bg-canvas px-3.5 py-2.5 text-[0.75rem] leading-none font-semibold text-ink transition-colors duration-300 hover:text-teal-deep focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--color-primary)]"
+            <div
+              className="mt-5 flex items-center justify-between gap-3 pt-4"
+              style={{ borderTop: `1px solid ${P.hairline}` }}
+            >
+              <div>
+                <p
+                  className="type-body ink-heading"
                 >
-                  {showChanges ? 'Hide changes' : 'View changes'}
-                  <LuArrowRight aria-hidden className="h-3 w-3" />
-                </button>
+                  Your latest scan
+                </p>
+                <p className="type-legal ink-body mt-2">
+                  2 skin insights changed
+                </p>
               </div>
+              <button
+                type="button"
+                aria-expanded={showChanges}
+                aria-controls={`${baseId}-changes`}
+                onClick={() => setShowChanges((v) => !v)}
+                className="type-legal ink-heading inline-flex min-h-9 shrink-0 cursor-pointer items-center gap-1.5 rounded-btn transition-colors duration-150 focus-visible:outline-2 focus-visible:-outline-offset-2"
+                style={{
+                  background: P.tint,
+                  padding: '10px 18px',
+                  ...focusRing,
+                }}
+                /* Hover clears the inline colour rather than writing the rest
+                   ink back, so `ink-heading` stays the single source of it. */
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = P.tealTint
+                  e.currentTarget.style.color = P.teal
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = P.tint
+                  e.currentTarget.style.color = ''
+                }}
+              >
+                {showChanges ? 'Hide changes' : 'View changes'}
+                <LuArrowRight aria-hidden className="h-3 w-3" />
+              </button>
             </div>
 
             <AnimatePresence initial={false}>
@@ -449,35 +850,51 @@ export function SkinPlan() {
                   transition={{ duration: 0.32, ease: EASE }}
                   className="overflow-hidden"
                 >
-                  <div className="mt-5 border-t border-ink-line pt-5">
-                    <p className="text-[1rem] leading-tight font-bold tracking-[-0.015em]">
+                  <div data-card className="mt-4" style={CARD}>
+                    <p
+                      className="type-card-title ink-heading"
+                    >
                       Your plan was updated
                     </p>
-                    <p className="mt-1.5 text-[0.875rem] leading-[1.6] text-ink-soft">
+                    <p className="type-small mt-1.5">
                       Your latest scan detected changes in:
                     </p>
 
                     <ul className="mt-4 grid gap-2.5 sm:grid-cols-2">
-                      {CHANGES.map((c) => (
+                      {CHANGES.map((c, xi) => (
                         <li
                           key={c.label}
-                          className="flex items-center gap-3.5 rounded-2xl bg-canvas p-3.5 ring-1 ring-[color:rgb(9_24_56_/_0.05)]"
+                          className="flex items-center gap-3.5"
+                          style={CARD}
                         >
                           <span
                             aria-hidden
-                            className={'grid h-9 w-9 shrink-0 place-items-center rounded-xl ' + (c.dir === 'up' ? TONES.amber : TONES.green)}
+                            className="grid h-9 w-9 shrink-0 place-items-center rounded-xl"
+                            style={{ background: tile(xi).bg, color: tile(xi).fg }}
                           >
-                            {c.dir === 'up' ? <LuTrendingUp className="h-4 w-4" /> : <LuTrendingDown className="h-4 w-4" />}
+                            {c.dir === 'up' ? (
+                              <LuTrendingUp className="h-4 w-4" />
+                            ) : (
+                              <LuTrendingDown className="h-4 w-4" />
+                            )}
                           </span>
                           <span className="min-w-0 flex-1">
-                            <span className="block text-[0.9375rem] leading-tight font-bold tracking-[-0.01em]">{c.label}</span>
-                            <span className="mt-1 block text-[0.8125rem] leading-tight text-ink-soft">{c.note}</span>
+                            <span
+                              className="type-body ink-heading block"
+                            >
+                              {c.label}
+                            </span>
+                            <span
+                              className="type-legal ink-body mt-1 block"
+                            >
+                              {c.note}
+                            </span>
                           </span>
                         </li>
                       ))}
                     </ul>
 
-                    <p className="mt-4 text-[0.875rem] leading-[1.6] text-ink-soft">
+                    <p className="type-small mt-4">
                       Your active-ingredient recommendations were adjusted accordingly.
                     </p>
                   </div>
