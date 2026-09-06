@@ -1544,3 +1544,70 @@ body { background: transparent; color: var(--text-soft); }
     box-shadow: 0 0 0 0 rgb(30 185 183 / 0);
   }
 }
+
+/* ---------------------------------------------------------------------------
+   Compatibility: the section's design tokens.
+
+   SCOPED TO THE SECTION, NOT :root. Two of these names — `--text-body` and
+   `--text-muted` — already exist globally and are read by `.type-body`,
+   `.type-small`, `.type-lead`, `.type-legal` and `.ink-muted` on every other
+   section. Declaring them at `:root` would silently re-ink the whole site.
+   Declared here they resolve only inside this section, which is exactly the
+   scope the values were chosen for.
+
+   The verdict triples live here too, so the markup carries no raw hex at all —
+   the component's state constant holds `var()` references and nothing else.
+   --------------------------------------------------------------------------- */
+.compat-scope {
+  /* The site ground. Exactly --bg / --atm-blue, so this section is flush with
+     Consultation above and Pricing below rather than a near-miss shade. */
+  --page-lavender: #f5f6fd;
+  --surface-white: #ffffff;
+  --surface-subtle: #fafafe;
+  --brand-teal: #0fa697;
+  --brand-teal-dk: #0c8578;
+  --tint-teal: #e6f7f4;
+  --ink-navy: #101b45;
+  --text-body: #3e4766;
+  --text-muted: #8a92ac;
+  --hairline: #edeef6;
+
+  /* Neutral surfaces inside a card. The tags are deliberately NOT tinted to
+     the verdict: the header band is the only element carrying that colour. */
+  --tag-tint: #f4f6f9;
+  --rule: #e3e5f0;
+
+  /* Semantic verdict colours — one band background and one ink each. The
+     graphic accents are gone with the edge bar and the strength meter. */
+  --verdict-good-band: #e6f7f4;
+  --verdict-good-ink: #0b7a62;
+
+  --verdict-caution-band: #fdf4e8;
+  --verdict-caution-ink: #a06d28;
+
+  --verdict-avoid-band: #fdecec;
+  --verdict-avoid-ink: #a8443c;
+}
+
+/* ---------------------------------------------------------------------------
+   Compatibility: the short-viewport guard.
+
+   A sticky column taller than the space between its offset and the bottom of
+   the viewport can never scroll its own tail into view — the bottom is simply
+   cut off for as long as it is pinned. On a short laptop that is worth trading
+   the effect away for, so the column falls back to static.
+
+   UNLAYERED ON PURPOSE. Tailwind emits `min-[1024px]:sticky` into
+   `@layer utilities`, and an unlayered rule beats a layered one regardless of
+   source order, so this wins without `!important`.
+
+   NOTE: at the current content height this guard never actually fires — the
+   left column measures 444px, and 444 + 96 is comfortably inside a 780px
+   viewport. It is a safety net for if that column grows, not something the
+   page relies on today. See the report.
+   --------------------------------------------------------------------------- */
+@media (min-width: 1024px) and (max-height: 780px) {
+  .plan-left {
+    position: static;
+  }
+}
