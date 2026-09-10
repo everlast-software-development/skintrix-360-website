@@ -12,6 +12,8 @@ import { Badge } from '@/components/ui/badge'
 import { BentoGridShowcase } from '@/components/ui/bento-grid'
 import { Card, CardDescription, CardTitle } from '@/components/ui/card'
 import { useTextReveal } from '@/hooks/useTextReveal'
+import { FeatureTile } from '@/components/ui/FeatureTile'
+import { LuStethoscope } from 'react-icons/lu'
 
 /**
  * Consultation — the app's one differentiator, as a bento grid.
@@ -202,16 +204,16 @@ export function Consultation() {
     <section
       id="consultation"
       aria-labelledby="consultation-heading"
-      className="w-full overflow-x-clip py-[clamp(3.5rem,6vw,5.5rem)]"
+      className="section-y w-full overflow-x-clip"
     >
-      <div className="mx-auto w-full max-w-[1180px] px-6">
+      <div className="shell">
         {/* ── header ─────────────────────────────────────────────────────── */}
-        <div className="measure-header text-center">
-          <p
-            className="type-eyebrow"
-          >
-            Professional consultation
-          </p>
+        <div className="section-head">
+          <FeatureTile
+            group="planning"
+            icon={LuStethoscope}
+            name="Professional consultation"
+          />
 
           <h2 ref={headingRef} id="consultation-heading" className="type-h2">
             The AI reads your skin. A professional helps you act on it.

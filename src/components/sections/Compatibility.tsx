@@ -45,12 +45,12 @@ export function Compatibility() {
     <section
       id="compatibility"
       aria-labelledby="compatibility-heading"
-      className="compat-scope relative w-full scroll-mt-24 overflow-clip py-[120px]"
+      className="compat-scope section-y relative w-full scroll-mt-24 overflow-clip"
       style={{ background: 'var(--page-lavender)' }}
     >
       {/* 1240px rather than the site's `shell` (1216px), per the brief. Same
           gutters as `shell` so the section never touches the viewport edge. */}
-      <div className="mx-auto w-full max-w-[1240px] px-6 min-[768px]:px-10">
+      <div className="shell">
         <CompatibilityVerdicts headingId="compatibility-heading" />
       </div>
     </section>

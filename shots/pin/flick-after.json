@@ -1,0 +1,250 @@
+{
+  "375": {
+    "rows": [
+      {
+        "notches": 3,
+        "seen": [
+          0,
+          1
+        ],
+        "y": 300,
+        "stage": 1,
+        "pinned": true
+      },
+      {
+        "notches": 5,
+        "seen": [
+          0,
+          1
+        ],
+        "y": 500,
+        "stage": 1,
+        "pinned": true
+      },
+      {
+        "notches": 8,
+        "seen": [
+          0,
+          1,
+          2
+        ],
+        "y": 800,
+        "stage": 2,
+        "pinned": true
+      },
+      {
+        "notches": 12,
+        "seen": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ],
+        "y": 1200,
+        "stage": 4,
+        "pinned": true
+      },
+      {
+        "notches": 20,
+        "seen": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ],
+        "y": 2000,
+        "stage": 4,
+        "pinned": false
+      }
+    ],
+    "extreme": {
+      "seen": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "y": 10800
+    },
+    "errors": []
+  },
+  "1024": {
+    "rows": [
+      {
+        "notches": 3,
+        "seen": [
+          0
+        ],
+        "y": 300,
+        "stage": 0,
+        "pinned": true
+      },
+      {
+        "notches": 5,
+        "seen": [
+          0,
+          1
+        ],
+        "y": 500,
+        "stage": 1,
+        "pinned": true
+      },
+      {
+        "notches": 8,
+        "seen": [
+          0,
+          1,
+          2
+        ],
+        "y": 800,
+        "stage": 2,
+        "pinned": true
+      },
+      {
+        "notches": 12,
+        "seen": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "y": 1200,
+        "stage": 3,
+        "pinned": true
+      },
+      {
+        "notches": 20,
+        "seen": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ],
+        "y": 2000,
+        "stage": 4,
+        "pinned": false
+      }
+    ],
+    "extreme": {
+      "seen": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "y": 10800
+    },
+    "errors": []
+  },
+  "1440": {
+    "rows": [
+      {
+        "notches": 3,
+        "seen": [
+          0
+        ],
+        "y": 300,
+        "stage": 0,
+        "pinned": true
+      },
+      {
+        "notches": 5,
+        "seen": [
+          0,
+          1
+        ],
+        "y": 500,
+        "stage": 1,
+        "pinned": true
+      },
+      {
+        "notches": 8,
+        "seen": [
+          0,
+          1
+        ],
+        "y": 800,
+        "stage": 1,
+        "pinned": true
+      },
+      {
+        "notches": 12,
+        "seen": [
+          0,
+          1,
+          2
+        ],
+        "y": 1200,
+        "stage": 2,
+        "pinned": true
+      },
+      {
+        "notches": 20,
+        "seen": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ],
+        "y": 2000,
+        "stage": 4,
+        "pinned": true
+      }
+    ],
+    "extreme": {
+      "seen": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "y": 10800
+    },
+    "errors": []
+  },
+  "misc": {
+    "progress": [
+      {
+        "y": 0,
+        "found": false,
+        "transform": null,
+        "width": null
+      },
+      {
+        "y": 3783,
+        "found": false,
+        "transform": null,
+        "width": null
+      },
+      {
+        "y": 7567,
+        "found": false,
+        "transform": null,
+        "width": null
+      },
+      {
+        "y": 13620,
+        "found": false,
+        "transform": null,
+        "width": null
+      }
+    ],
+    "fan": {
+      "stage": 1,
+      "y": 800
+    },
+    "footer": {
+      "found": true,
+      "childPosition": "fixed",
+      "visible": true
+    },
+    "errors": []
+  }
+}

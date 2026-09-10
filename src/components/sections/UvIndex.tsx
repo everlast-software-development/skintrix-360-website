@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { LuMapPin, LuShieldCheck, LuSun } from 'react-icons/lu'
 
 import { useTextReveal } from '@/hooks/useTextReveal'
+import { FeatureTile } from '@/components/ui/FeatureTile'
 
 /**
  * UV Index — the app's UV card, beside what it actually tells you to wear.
@@ -200,8 +201,13 @@ export function UvIndex({ data = UV }: { data?: UvData }) {
           it. Replaces a local `max-w-[1100px] px-6`. */}
       <div className="shell">
         {/* ── header ──────────────────────────────────────────────────────── */}
-        <header className="mx-auto max-w-[660px] text-center">
-          <p className="type-eyebrow">In the app</p>
+        <header className="section-head">
+          <FeatureTile
+            group="tracking"
+            icon={LuSun}
+            name="UV Index"
+            description="In the app"
+          />
           <h2 ref={headingRef} id="uv-heading" className="type-h2 mt-3">
             Your skin does not live in a lab. Neither should your advice.
           </h2>

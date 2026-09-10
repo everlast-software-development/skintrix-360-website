@@ -1,0 +1,295 @@
+{
+  "375": {
+    "geom": {
+      "spacerH": 2250,
+      "elH": 900,
+      "svh": 900
+    },
+    "marks": [
+      {
+        "stage": 0,
+        "y": 0,
+        "notch": 0
+      },
+      {
+        "stage": 1,
+        "y": 387,
+        "notch": 5
+      },
+      {
+        "stage": 2,
+        "y": 682,
+        "notch": 8
+      },
+      {
+        "stage": 3,
+        "y": 991,
+        "notch": 11
+      },
+      {
+        "stage": 4,
+        "y": 1179,
+        "notch": 13
+      },
+      {
+        "stage": "released",
+        "y": 1382,
+        "notch": 15
+      }
+    ],
+    "perStage": [
+      {
+        "from": 0,
+        "to": 1,
+        "notches": 5,
+        "px": 387
+      },
+      {
+        "from": 1,
+        "to": 2,
+        "notches": 3,
+        "px": 295
+      },
+      {
+        "from": 2,
+        "to": 3,
+        "notches": 3,
+        "px": 309
+      },
+      {
+        "from": 3,
+        "to": 4,
+        "notches": 2,
+        "px": 188
+      },
+      {
+        "from": 4,
+        "to": "released",
+        "notches": 2,
+        "px": 203
+      }
+    ],
+    "flick": {
+      "seen": [
+        4
+      ],
+      "y": 12300,
+      "stage": 4
+    },
+    "reverse": {
+      "seen": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "y": 0,
+      "stage": 0
+    },
+    "errors": []
+  },
+  "1024": {
+    "geom": {
+      "spacerH": 2610,
+      "elH": 900,
+      "svh": 900
+    },
+    "marks": [
+      {
+        "stage": 0,
+        "y": 0,
+        "notch": 0
+      },
+      {
+        "stage": 1,
+        "y": 485,
+        "notch": 6
+      },
+      {
+        "stage": 2,
+        "y": 782,
+        "notch": 9
+      },
+      {
+        "stage": 3,
+        "y": 1176,
+        "notch": 13
+      },
+      {
+        "stage": 4,
+        "y": 1483,
+        "notch": 16
+      },
+      {
+        "stage": "released",
+        "y": 1788,
+        "notch": 19
+      }
+    ],
+    "perStage": [
+      {
+        "from": 0,
+        "to": 1,
+        "notches": 6,
+        "px": 485
+      },
+      {
+        "from": 1,
+        "to": 2,
+        "notches": 3,
+        "px": 297
+      },
+      {
+        "from": 2,
+        "to": 3,
+        "notches": 4,
+        "px": 394
+      },
+      {
+        "from": 3,
+        "to": 4,
+        "notches": 3,
+        "px": 307
+      },
+      {
+        "from": 4,
+        "to": "released",
+        "notches": 3,
+        "px": 305
+      }
+    ],
+    "flick": {
+      "seen": [
+        4
+      ],
+      "y": 12700,
+      "stage": 4
+    },
+    "reverse": {
+      "seen": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "y": 0,
+      "stage": 0
+    },
+    "errors": []
+  },
+  "1440": {
+    "geom": {
+      "spacerH": 3013,
+      "elH": 989,
+      "svh": 900
+    },
+    "marks": [
+      {
+        "stage": 0,
+        "y": 0,
+        "notch": 0
+      },
+      {
+        "stage": 1,
+        "y": 480,
+        "notch": 6
+      },
+      {
+        "stage": 2,
+        "y": 883,
+        "notch": 10
+      },
+      {
+        "stage": 3,
+        "y": 1379,
+        "notch": 15
+      },
+      {
+        "stage": 4,
+        "y": 1786,
+        "notch": 19
+      },
+      {
+        "stage": "released",
+        "y": 2076,
+        "notch": 22
+      }
+    ],
+    "perStage": [
+      {
+        "from": 0,
+        "to": 1,
+        "notches": 6,
+        "px": 480
+      },
+      {
+        "from": 1,
+        "to": 2,
+        "notches": 4,
+        "px": 403
+      },
+      {
+        "from": 2,
+        "to": 3,
+        "notches": 5,
+        "px": 496
+      },
+      {
+        "from": 3,
+        "to": 4,
+        "notches": 4,
+        "px": 407
+      },
+      {
+        "from": 4,
+        "to": "released",
+        "notches": 3,
+        "px": 290
+      }
+    ],
+    "flick": {
+      "seen": [
+        4
+      ],
+      "y": 13000,
+      "stage": 4
+    },
+    "reverse": {
+      "seen": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "y": 0,
+      "stage": 0
+    },
+    "errors": []
+  },
+  "resize": {
+    "at1440": {
+      "y": 0,
+      "stage": 0,
+      "pos": "fixed",
+      "spacerH": 3013,
+      "elH": 989,
+      "svh": 900
+    },
+    "at375": {
+      "y": 0,
+      "stage": 0,
+      "pos": "fixed",
+      "spacerH": 2250,
+      "elH": 900,
+      "svh": 900
+    },
+    "back1440": {
+      "y": 0,
+      "stage": 0,
+      "pos": "fixed",
+      "spacerH": 3013,
+      "elH": 989,
+      "svh": 900
+    }
+  }
+}

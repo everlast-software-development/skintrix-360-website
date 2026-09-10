@@ -4,6 +4,8 @@ import { Reveal } from '@/components/ui/Reveal'
 import type { Variants } from '@/lib/motion'
 import { EASE, VIEWPORT, fadeUp, stagger, transition } from '@/lib/motion'
 import { useTextReveal } from '@/hooks/useTextReveal'
+import { FeatureTile } from '@/components/ui/FeatureTile'
+import { LuCamera } from 'react-icons/lu'
 
 /**
  * A standard section intro, one white showcase panel holding a fan of three
@@ -543,7 +545,8 @@ export function HowItWorks() {
           pure white, measured down the page's left gutter. */}
 
       <div className="shell relative">
-        <div className="measure-header text-center">
+        <div className="section-head">
+          <FeatureTile group="analysis" icon={LuCamera} name="How it works" />
           <h2 ref={headingRef} id="how-heading" className="text-section">
             How it works
           </h2>

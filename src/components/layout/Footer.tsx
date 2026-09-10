@@ -41,20 +41,36 @@ import { SITE } from '@/lib/site'
  * the reserve, not the plan. Anything that makes this column taller has to be
  * paid for in `--footer-h`, or the clip-path cuts the bottom of the wordmark.
  *
- * BELOW 769px THE REVEAL IS OFF — plain static footer, no clip-path, no fixed
- * wrapper. Two measured reasons, not a preference:
+ * THE REVEAL RUNS AT EVERY WIDTH — and the unit is why it can.
  *
- *   1. The content does not fit a reserve that size. The column is taller at
- *      narrow widths, where the grid gains a third row and the legal line
- *      wraps.
- *   2. A reserve that approaches the phone's visible viewport height makes the
- *      reveal's completion depend on the browser toolbars. `100vh` is the
- *      LARGE viewport (toolbars hidden) while the fixed child's `bottom: 0`
- *      tracks the small one, so on a 667px device showing ~553px the footer's
- *      top — the logo — would sit permanently off screen.
+ * It used to be disabled below 769px for two reasons, both real at the time:
+ * the reserve did not fit the taller narrow-width content, and `100vh` is the
+ * LARGE viewport (toolbars hidden) while the fixed child's `bottom: 0` tracks
+ * the small one — so on a phone showing ~553px of a 667px viewport the
+ * footer's top, the logo, sat permanently off screen, and the whole thing
+ * jumped as the address bar collapsed.
  *
- * Static below 769px has neither problem: the footer is exactly as tall as its
- * content, and nothing is pinned, so no toolbar can move it.
+ * `svh` removes that. It is the SMALL viewport height: the height with the
+ * toolbars SHOWN, which is the one measurement that does not change when they
+ * hide. A fixed child positioned against it therefore cannot be moved by a
+ * collapsing address bar, because the number it was placed with never moves.
+ *
+ * Both halves read the same expression, so the reserve and the fixed child are
+ * identical by construction:
+ *
+ *   --footer-h: min(100svh, <cap>)
+ *
+ * The `min()` is the fit half of the old problem, solved rather than avoided.
+ * The cap is the measured content height plus slack (760 / 820 / 880 across
+ * the three tiers, against content of 683 / 753 / 793). `min()` then clamps
+ * that to the viewport, which guarantees two things at once: the footer is
+ * never taller than the screen, so the reveal always completes with no gap at
+ * either end; and `calc(100svh - var(--footer-h))` is never negative, so the
+ * sticky child cannot be pushed off its own track.
+ *
+ * On a viewport SHORTER than the content — a 1440x700 desktop window, say —
+ * the cap loses to `100svh` and the inner `overflow-y-auto` takes up the
+ * remainder. That is the intended safety net, not the plan.
  *
  * `FaSnapchatGhost` does not exist in react-icons/fa6 — Font Awesome renamed
  * it to `FaSnapchat` in v6. Same glyph, already installed.
@@ -294,14 +310,14 @@ export function Footer() {
          The clip-path is a `min-[769px]:` arbitrary property rather than an
          inline style so it can be switched off with the rest of the reveal;
          the computed polygon is byte-identical to the inline version. */
-      className="relative w-full min-[769px]:h-[var(--footer-h)] min-[769px]:[--footer-h:820px] min-[769px]:[clip-path:polygon(0%_0,100%_0%,100%_100%,0_100%)] min-[1025px]:[--footer-h:860px]"
+      className="relative h-[var(--footer-h)] w-full [--footer-h:min(100svh,760px)] [clip-path:polygon(0%_0,100%_0%,100%_100%,0_100%)] min-[769px]:[--footer-h:min(100svh,820px)] min-[1025px]:[--footer-h:min(100svh,880px)]"
       style={{ background: C.ground }}
     >
       <div
-        className="min-[769px]:fixed min-[769px]:bottom-0 min-[769px]:h-[var(--footer-h)] min-[769px]:w-full"
+        className="fixed bottom-0 h-[var(--footer-h)] w-full"
         style={{ background: C.ground }}
       >
-        <div className="min-[769px]:sticky min-[769px]:top-[calc(100vh-var(--footer-h))] min-[769px]:h-full min-[769px]:overflow-y-auto">
+        <div className="sticky top-[calc(100svh-var(--footer-h))] h-full overflow-y-auto">
           {/* `flex-[1_0_auto]` on the column, not `flex-1`: grow into any slack
               the reserve leaves over, but never compress below the content's
               natural height. That slack lands above the band, which keeps the
@@ -332,26 +348,56 @@ export function Footer() {
                 <WaveText text="AI-powered skin intelligence. No brand affiliation, ever." />
               </p>
 
-              {/* ── the social cell grid ─────────────────────────────────
-                  Left and right edges live on this container; the top and
-                  bottom are separate full-bleed hairlines. Because they are
-                  positioned against this box — which spans every row — they
-                  sit above the first row and below the last, never mid-grid. */}
-              <div
-                className="relative mx-auto mt-9 grid w-full max-w-[820px] grid-cols-2 min-[769px]:grid-cols-3"
-                style={{ borderLeft: `1px solid ${C.hair}`, borderRight: `1px solid ${C.hair}` }}
-              >
-                <div
-                  aria-hidden="true"
-                  className="pointer-events-none absolute top-[-1px] left-1/2 w-screen -translate-x-1/2"
-                  style={{ borderTop: `1px solid ${C.hair}` }}
-                />
-                <div
-                  aria-hidden="true"
-                  className="pointer-events-none absolute bottom-[-1px] left-1/2 w-screen -translate-x-1/2"
-                  style={{ borderBottom: `1px solid ${C.hair}` }}
-                />
+            </div>
 
+            {/* ── the social cell grid ─────────────────────────────────
+                A FULL-WIDTH band, deliberately a sibling of the centred column
+                above rather than a child of it.
+
+                WHY THIS IS NOT `100vw` ANY MORE
+                The top and bottom hairlines are full-bleed: they run the whole
+                footer while the grid itself is capped at 820px. They used to
+                escape the cap with `width: 100vw` + `left: 50%` +
+                `translateX(-50%)`, and that was the horizontal scrollbar bug.
+                `100vw` is the viewport INCLUDING the vertical scrollbar, so a
+                `100vw` child is ~15px wider than the visible page and forces
+                the document to scroll sideways — measured at exactly 15px on
+                1440/1280/1024 and 8px (half, because it was centred) on
+                768/375.
+
+                `left: 0; right: 0` with no width declaration is the same
+                visual result and cannot overflow, because it resolves against
+                this band's layout box instead of the viewport. The band is
+                already the footer's full width, so no `vw` unit is involved
+                anywhere in the footer now.
+
+                `calc(100vw - (100vw - 100%))` was the other option offered, but
+                it resolves to `100%` OF THE CONTAINING BLOCK — inside the old
+                820px grid that is 820px, not full-bleed. It only helps when the
+                containing block is already page-wide, which is exactly the
+                condition this restructure creates directly. */}
+            <div className="relative mt-9 w-full shrink-0">
+              <div
+                aria-hidden="true"
+                className="pointer-events-none absolute top-[-1px] right-0 left-0"
+                style={{ borderTop: `1px solid ${C.hair}` }}
+              />
+              <div
+                aria-hidden="true"
+                className="pointer-events-none absolute bottom-[-1px] right-0 left-0"
+                style={{ borderBottom: `1px solid ${C.hair}` }}
+              />
+
+              {/* `px-6` sits here, NOT on the band: the hairlines resolve
+                  against the band's padding box, so padding there would inset
+                  them and they would stop being full-bleed. This keeps the
+                  grid's own gutter identical to what the centred column gave
+                  it before. */}
+              <div className="px-6">
+                <div
+                  className="mx-auto grid w-full max-w-[820px] grid-cols-2 min-[769px]:grid-cols-3"
+                  style={{ borderLeft: `1px solid ${C.hair}`, borderRight: `1px solid ${C.hair}` }}
+                >
                 {SOCIALS.map((s, i) => {
                   const showPlus = plusClass(i)
                   return (
@@ -400,7 +446,15 @@ export function Footer() {
                   className={`relative flex ${edgeClasses(5)}`}
                   style={{ borderColor: C.hair }}
                 />
+                </div>
               </div>
+            </div>
+
+            {/* The centred column resumes for the legal row. `flex-[1_0_auto]`
+                stays on the FIRST column only, so the reserve's slack still
+                lands above the grid and the wordmark band stays flush with the
+                footer's bottom edge. */}
+            <div className="mx-auto flex w-full max-w-[900px] flex-col items-center px-6 text-center">
 
               {/* ── legal ────────────────────────────────────────────────── */}
               <div className="type-small mt-10 flex flex-wrap items-center justify-center gap-x-[30px] gap-y-2">

@@ -1,0 +1,302 @@
+{
+  "375": {
+    "gridCols": "312px",
+    "colGap": "normal",
+    "rowGap": "16px",
+    "alignItems": "flex-start",
+    "children": [
+      {
+        "what": "THREE BOXES",
+        "display": "contents",
+        "position": "static",
+        "stickyTop": "auto",
+        "gridColumn": "auto / auto",
+        "gridRow": "auto / auto",
+        "order": "0",
+        "left": 24,
+        "width": 312,
+        "top": 2188,
+        "height": 893
+      },
+      {
+        "what": "PLAN PANEL",
+        "display": "block",
+        "position": "static",
+        "stickyTop": "auto",
+        "gridColumn": "auto / auto",
+        "gridRow": "auto / auto",
+        "order": "1",
+        "left": 24,
+        "width": 312,
+        "top": 963,
+        "height": 1208
+      }
+    ],
+    "h2": {
+      "text": "Your whole plan, written from your own scan.",
+      "lineHeight": 32.5,
+      "height": 65,
+      "linesByBaseline": 2,
+      "linesByHeight": 2
+    },
+    "lead": "Morning and evening routines, weekly treatments, supplements, in-clinic options, daily habits, and a projection for every concern — all generated from the scan you just took.",
+    "hint": "Switch tabs to see how the full plan is built.",
+    "firstBlockOnPage": "AI-Generated Plan6 Aug",
+    "visualOrder": [
+      "AI-Generated Plan6 Aug",
+      "EverythingPore Visibil",
+      "ForecastRoutineTreatme",
+      "Overall Skin Forecast1",
+      "About this stepPore Vi",
+      "From your scanThis pla",
+      "What's in this plan24 "
+    ],
+    "overflow": 0,
+    "sticky": {
+      "scrolledBy": 934,
+      "child0Moved": -934,
+      "child1Moved": -934
+    },
+    "errors": []
+  },
+  "768": {
+    "gridCols": "673px",
+    "colGap": "normal",
+    "rowGap": "16px",
+    "alignItems": "flex-start",
+    "children": [
+      {
+        "what": "THREE BOXES",
+        "display": "contents",
+        "position": "static",
+        "stickyTop": "auto",
+        "gridColumn": "auto / auto",
+        "gridRow": "auto / auto",
+        "order": "0",
+        "left": 40,
+        "width": 673,
+        "top": 1976,
+        "height": 693
+      },
+      {
+        "what": "PLAN PANEL",
+        "display": "block",
+        "position": "static",
+        "stickyTop": "auto",
+        "gridColumn": "auto / auto",
+        "gridRow": "auto / auto",
+        "order": "1",
+        "left": 40,
+        "width": 673,
+        "top": 825,
+        "height": 1135
+      }
+    ],
+    "h2": {
+      "text": "Your whole plan, written from your own scan.",
+      "lineHeight": 32.5,
+      "height": 33,
+      "linesByBaseline": 1,
+      "linesByHeight": 1
+    },
+    "lead": "Morning and evening routines, weekly treatments, supplements, in-clinic options, daily habits, and a projection for every concern — all generated from the scan you just took.",
+    "hint": "Switch tabs to see how the full plan is built.",
+    "firstBlockOnPage": "AI-Generated Plan6 Aug",
+    "visualOrder": [
+      "AI-Generated Plan6 Aug",
+      "EverythingPore Visibil",
+      "ForecastRoutineTreatme",
+      "Overall Skin Forecast1",
+      "About this stepPore Vi",
+      "From your scanThis pla",
+      "What's in this plan24 "
+    ],
+    "overflow": 0,
+    "sticky": {
+      "scrolledBy": 1293,
+      "child0Moved": -1293,
+      "child1Moved": -1293
+    },
+    "errors": []
+  },
+  "1024": {
+    "gridCols": "418.047px 438.953px",
+    "colGap": "72px",
+    "rowGap": "16px",
+    "alignItems": "flex-start",
+    "children": [
+      {
+        "what": "THREE BOXES",
+        "display": "block",
+        "position": "sticky",
+        "stickyTop": "96px",
+        "gridColumn": "2 / auto",
+        "gridRow": "1 / auto",
+        "order": "0",
+        "left": 530,
+        "width": 439,
+        "top": -390,
+        "height": 750
+      },
+      {
+        "what": "PLAN PANEL",
+        "display": "block",
+        "position": "static",
+        "stickyTop": "auto",
+        "gridColumn": "1 / auto",
+        "gridRow": "1 / auto",
+        "order": "1",
+        "left": 40,
+        "width": 418,
+        "top": -861,
+        "height": 1220
+      }
+    ],
+    "h2": {
+      "text": "Your whole plan, written from your own scan.",
+      "lineHeight": 40,
+      "height": 40,
+      "linesByBaseline": 1,
+      "linesByHeight": 1
+    },
+    "lead": "Morning and evening routines, weekly treatments, supplements, in-clinic options, daily habits, and a projection for every concern — all generated from the scan you just took.",
+    "hint": "Switch tabs to see how the full plan is built.",
+    "firstBlockOnPage": "AI-Generated Plan6 Aug",
+    "visualOrder": [
+      "AI-Generated Plan6 Aug",
+      "EverythingPore Visibil",
+      "ForecastRoutineTreatme",
+      "Overall Skin Forecast1",
+      "What's in this plan24 ",
+      "About this stepPore Vi",
+      "From your scanThis pla"
+    ],
+    "overflow": 0,
+    "sticky": {
+      "scrolledBy": -438,
+      "child0Moved": 438,
+      "child1Moved": 438
+    },
+    "errors": []
+  },
+  "1280": {
+    "gridCols": "519.016px 544.984px",
+    "colGap": "72px",
+    "rowGap": "16px",
+    "alignItems": "flex-start",
+    "children": [
+      {
+        "what": "THREE BOXES",
+        "display": "block",
+        "position": "sticky",
+        "stickyTop": "96px",
+        "gridColumn": "2 / auto",
+        "gridRow": "1 / auto",
+        "order": "0",
+        "left": 656,
+        "width": 545,
+        "top": 966,
+        "height": 715
+      },
+      {
+        "what": "PLAN PANEL",
+        "display": "block",
+        "position": "static",
+        "stickyTop": "auto",
+        "gridColumn": "1 / auto",
+        "gridRow": "1 / auto",
+        "order": "1",
+        "left": 65,
+        "width": 519,
+        "top": 966,
+        "height": 1158
+      }
+    ],
+    "h2": {
+      "text": "Your whole plan, written from your own scan.",
+      "lineHeight": 50,
+      "height": 100,
+      "linesByBaseline": 2,
+      "linesByHeight": 2
+    },
+    "lead": "Morning and evening routines, weekly treatments, supplements, in-clinic options, daily habits, and a projection for every concern — all generated from the scan you just took.",
+    "hint": "Switch tabs to see how the full plan is built.",
+    "firstBlockOnPage": "What's in this plan24 ",
+    "visualOrder": [
+      "What's in this plan24 ",
+      "AI-Generated Plan6 Aug",
+      "EverythingPore Visibil",
+      "ForecastRoutineTreatme",
+      "Overall Skin Forecast1",
+      "About this stepPore Vi",
+      "From your scanThis pla"
+    ],
+    "overflow": 0,
+    "sticky": {
+      "scrolledBy": 1991,
+      "child0Moved": -1549,
+      "child1Moved": -1991
+    },
+    "errors": []
+  },
+  "1440": {
+    "gridCols": "519.016px 544.984px",
+    "colGap": "72px",
+    "rowGap": "16px",
+    "alignItems": "flex-start",
+    "children": [
+      {
+        "what": "THREE BOXES",
+        "display": "block",
+        "position": "sticky",
+        "stickyTop": "96px",
+        "gridColumn": "2 / auto",
+        "gridRow": "1 / auto",
+        "order": "0",
+        "left": 736,
+        "width": 545,
+        "top": 333,
+        "height": 715
+      },
+      {
+        "what": "PLAN PANEL",
+        "display": "block",
+        "position": "static",
+        "stickyTop": "auto",
+        "gridColumn": "1 / auto",
+        "gridRow": "1 / auto",
+        "order": "1",
+        "left": 145,
+        "width": 519,
+        "top": 333,
+        "height": 1165
+      }
+    ],
+    "h2": {
+      "text": "Your whole plan, written from your own scan.",
+      "lineHeight": 50,
+      "height": 100,
+      "linesByBaseline": 2,
+      "linesByHeight": 2
+    },
+    "lead": "Morning and evening routines, weekly treatments, supplements, in-clinic options, daily habits, and a projection for every concern — all generated from the scan you just took.",
+    "hint": "Switch tabs to see how the full plan is built.",
+    "firstBlockOnPage": "What's in this plan24 ",
+    "visualOrder": [
+      "What's in this plan24 ",
+      "AI-Generated Plan6 Aug",
+      "EverythingPore Visibil",
+      "ForecastRoutineTreatme",
+      "Overall Skin Forecast1",
+      "About this stepPore Vi",
+      "From your scanThis pla"
+    ],
+    "overflow": 0,
+    "sticky": {
+      "scrolledBy": 879,
+      "child0Moved": -430,
+      "child1Moved": -879
+    },
+    "errors": []
+  }
+}

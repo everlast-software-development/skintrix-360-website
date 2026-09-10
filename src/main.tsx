@@ -15,16 +15,16 @@ import App from '@/App'
  * before any of this runs — Chrome and Safari both do it — so the position is
  * also reset explicitly.
  *
- * It runs BEFORE `createRoot`, which is what keeps Lenis out of the argument.
- * `useSmoothScroll` creates Lenis in an effect after mount, and Lenis takes the
- * current offset as its starting position; resetting first means it is created
- * at 0 and there is nothing to fight. Doing this after mount instead would set
- * the native scroll behind Lenis's back and desync the two.
+ * It runs BEFORE `createRoot`, so the reset lands on the real scroller once,
+ * before React mounts anything that measures it.
+ *
+ * `scrollTo(0, 0)` is the two-argument form, which is always instant — and
+ * there is no smooth scrolling anywhere on this site to animate it anyway.
  *
  * A URL with a hash is left alone. `/#download` and the in-page anchors are
  * navigation, not restoration, and forcing them to the top would break the
  * navbar's links from the legal pages back to the landing page. The browser
- * (or Lenis, for a same-page click) handles those.
+ * handles those natively.
  */
 if (!window.location.hash) window.scrollTo(0, 0)
 

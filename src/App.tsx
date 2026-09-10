@@ -15,12 +15,12 @@ import { HowItWorks } from '@/components/sections/HowItWorks'
 import { UvIndex } from '@/components/sections/UvIndex'
 import { Footer } from '@/components/layout/Footer'
 import { lazySection } from '@/lib/lazySection'
-import { useSmoothScroll } from '@/hooks/useSmoothScroll'
+import { useScrollRefresh } from '@/hooks/useScrollRefresh'
 
 /* Everything below the first screen and a half, plus both legal pages. See
    `lazySection` for why these are bundle splits rather than defer-until-seen,
    and for the ScrollTrigger re-measure each one performs on mount. */
-const SkinPlan = lazySection(() => import('@/components/sections/SkinPlan'), 'SkinPlan')
+const SkinPlan = lazySection(() => import('@/components/sections/skin-plan'), 'SkinPlan')
 const Consultation = lazySection(
   () => import('@/components/sections/Consultation'),
   'Consultation',
@@ -96,7 +96,7 @@ const path = raw.length > 1 && raw.endsWith('/') ? raw.slice(0, -1) : raw
 const Page = ROUTES[path as keyof typeof ROUTES] ?? Landing
 
 export default function App() {
-  useSmoothScroll()
+  useScrollRefresh()
 
   /**
    * Land a hashed URL on its section.
@@ -108,12 +108,15 @@ export default function App() {
    * `/#download` from the legal pages' navbar appeared to do nothing.
    *
    * One pass, on mount, after the sections exist. `scroll-padding-top: 6rem`
-   * on `html` keeps the fixed navbar off the target, and this runs before
-   * Lenis is created — `useSmoothScroll` imports it asynchronously — so there
-   * is no smoothed position to desync from.
+   * on `html` keeps the fixed navbar off the target.
+   *
+   * `scrollIntoView()` with no argument means `behavior: auto`, which reads
+   * the computed `scroll-behavior` — declared `auto` on `html` in index.css
+   * — so this is an instant jump, never an animated one.
    *
    * Deliberately not reactive and deliberately silent when the hash matches
-   * nothing: in-page clicks are Lenis's job, and this must never fight it.
+   * nothing: an in-page click is the browser's own fragment navigation, and
+   * this must never fight it.
    */
   useEffect(() => {
     const { hash } = window.location

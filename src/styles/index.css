@@ -543,17 +543,6 @@
     border-radius: 4px;
   }
 
-  /* Lenis */
-  html.lenis,
-  html.lenis body {
-    height: auto;
-  }
-  .lenis.lenis-smooth {
-    scroll-behavior: auto !important;
-  }
-  .lenis.lenis-stopped {
-    overflow: hidden;
-  }
 }
 
 /* ------------------------------------------------------------------
@@ -1312,6 +1301,20 @@ html {
   background: var(--page);
   background-image: var(--page-wash);
   background-attachment: fixed;
+
+  /* NATIVE SCROLLING, AND NOTHING ELSE.
+
+     `auto` is the initial value, so this is a declaration of intent as much
+     as a rule: the page scrolls exactly as the browser scrolls it. Never set
+     `smooth` here — it would animate every fragment navigation and every
+     argument-less `scrollIntoView()` on the site at once.
+
+     UNLAYERED on purpose. Everything in this file outside `@layer` already
+     beats Tailwind utilities, and this rule has to beat everything: it is
+     what stops a future utility class quietly reintroducing smoothing. Its
+     companion `scroll-padding-top: 6rem` is in the base layer above, and is
+     what keeps the fixed navbar off an anchored section. */
+  scroll-behavior: auto;
 }
 body { background: transparent; color: var(--text-soft); }
 
@@ -1609,5 +1612,1304 @@ body { background: transparent; color: var(--text-soft); }
 @media (min-width: 1024px) and (max-height: 780px) {
   .plan-left {
     position: static;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Hero: the CTA pair.
+
+   One min-width shared by BOTH buttons, wide enough to bind on the longer
+   label, so the two resolve to the same width even though "Download the App"
+   is much longer than "Scan your skin" — the padding takes up the slack. The
+   row hugs the pair (`width: fit-content` + `margin-inline: auto`), never
+   `flex: 1` or `width: 100%` — a stretched row is what pulled the pair across
+   the whole container around 800px and left it off-centre under the sub-line.
+
+   UNLAYERED ON PURPOSE, for two reasons: it has to beat Button's own layered
+   `h-14`, and it has to reach `.btn-glossy__wrap`, which owns the horizontal
+   padding and is not addressable from a `className`.
+
+   Scoped to `#top` so no other CTA on the page is touched.
+   --------------------------------------------------------------------------- */
+#top .hero-ctas {
+  /* fit-content, not auto: a block-level flex container with `width: auto`
+     still fills its parent, which is exactly the stretched row that had to
+     be fixed. fit-content makes the row hug the pair, and max-width keeps
+     it inside the container when the labels wrap. */
+  width: fit-content;
+  max-width: 100%;
+  margin-inline: auto;
+}
+
+#top .hero-cta {
+  flex: 0 0 auto;
+  /* 196px, not the 160/172/190 tier ladder: "Download the App" at the
+     hero's 16px type plus 2x26px padding is intrinsically 192.5px wide, so
+     any min-width below that never binds and the pair stays 20-32px
+     uneven. 196 is the smallest round value above it, so BOTH buttons
+     resolve to the same width — which is the point of sharing one
+     min-width. The tiers still differ in height. */
+  min-width: 196px;
+  height: 48px;
+  justify-content: center;
+}
+
+#top .hero-cta .btn-glossy__wrap {
+  padding-inline: 26px;
+}
+
+@media (min-width: 769px) {
+  #top .hero-cta {
+    height: 52px;
+  }
+}
+
+
+/* Stacked only below 481px, still centred. Above that they stay side by side,
+   which is why the row is flex-wrap rather than a column. */
+@media (max-width: 480px) {
+  #top .hero-ctas {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  #top .hero-cta {
+    width: 100%;
+    max-width: 300px;
+  }
+}
+
+
+/* ---------------------------------------------------------------------------
+   Pricing: the featured card's faint teal tint.
+
+   The card has carried `bg-[color:var(--brand-teal-50)]` since the section was
+   written, but it never rendered: `bg-surface` is on the same element and both
+   are Tailwind utilities in the same layer, so which one won came down to
+   source order — and `bg-surface` did, leaving Pro plain white. Unlayered here
+   so the tint the markup always asked for actually shows.
+
+   `--brand-teal-50` resolves to the same value as the section's own ground, so
+   against the white of the other three cards it reads as a soft teal-lavender
+   wash rather than a colour block.
+   --------------------------------------------------------------------------- */
+#pricing .plan-featured {
+  background: var(--brand-teal-50);
+}
+
+/* ===========================================================================
+   PRICING — the app's pricing screen, in the site's palette.
+
+   The app screen is amber on cream; this is the same layout, anatomy and
+   proportions recoloured to teal on #F5F6FD. Every amber surface became teal
+   or the teal-tinted near-white below. No warm hue anywhere.
+
+   WHY THIS IS PLAIN CSS AND NOT UTILITIES: the spec is given in exact pixels
+   and hexes (34px circles, 11.5px eyebrow, 0.1em tracking, six distinct
+   shadows), and the section's own type/ink role classes are UNLAYERED — so a
+   Tailwind arbitrary utility loses to `.type-legal` or `.ink-heading` on the
+   same element. Writing it here keeps one readable block per element instead
+   of a class list fighting the cascade.
+   =========================================================================== */
+#pricing {
+  --pr-accent: #1eb9b7;
+  --pr-accent-ink: #0e6a72;
+  --pr-accent-tint: #e6f7f6;
+  /* The section ground, reused as the quiet fill for pills and circles.
+     Teal is an ACCENT here, never a surface: the only teal fills left are
+     the featured button, the switch when on, and the "Most popular" badge. */
+  --pr-quiet: #f5f6fd;
+
+  /* THE TOKEN COLOUR IS INDIGO, FROM THE LOGO.
+
+     It was amber, and amber was wrong for a reason no amount of tuning could
+     fix: this palette is entirely cool — teal, navy, and a lilac-tinted
+     #F5F6FD ground — so ANY warm hue reads as imported from somewhere else.
+     Both earlier attempts failed in opposite directions: spread thin across
+     eight pills it looked like an unfinished tint, and committed as a band of
+     four cells it looked deliberate but plainly foreign.
+
+     Indigo solves it because it is already in the logo, so the token row can
+     be visibly distinct from the white plan cards without leaving the brand.
+
+     It still owns exactly ONE surface — the four cost cells — plus the coin
+     glyphs and the gift icon of the trust item about earning tokens. Never a
+     plan card, a badge or the ground.
+
+     Contrast: `--token-ink` measures 7.73:1 on `--token-surface` and 8.86:1
+     on white, both clear of the 4.5:1 body floor. `--token-icon` manages
+     4.97:1 on white and 4.33:1 on the surface, so unlike the amber coin it
+     clears the 3:1 non-text minimum on its own. */
+  --token-surface: #edeffa;
+  --token-border: #dce0f5;
+  --token-ink: #3b4194;
+  --token-icon: #5d64d3;
+
+  /* The neutral secondary button fill. A step DARKER than --token-surface on
+     purpose: they were the same value, and one value doing two unrelated jobs
+     — "this is a token surface" and "this is a secondary action" — is a
+     collision even when the two never touch. */
+  --pr-secondary: #e4e8f7;
+  /* The hairline that closes each card above its button. */
+  --pr-footer-line: #f0f2f9;
+  --pr-hairline: #e7eaf4;
+  --pr-heading: #1a2a5c;
+  --pr-body: #5a6b7b;
+  --pr-muted: #94a0ac;
+}
+
+/* ── header ─────────────────────────────────────────────────────────────── */
+#pricing .pr-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 999px;
+  border: 1px solid var(--pr-hairline);
+  background: #fff;
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--pr-accent-ink);
+}
+
+#pricing .pr-badge svg {
+  color: var(--pr-accent);
+}
+
+/* ── the billing toggle ─────────────────────────────────────────────────── */
+#pricing .pr-toggle {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border-radius: 999px;
+  background: #fff;
+  padding: 6px 14px;
+  border: 1px solid var(--pr-hairline);
+}
+
+#pricing .pr-toggle-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--pr-muted);
+  transition: color 0.2s ease;
+}
+
+#pricing .pr-toggle-label[data-active='true'] {
+  color: var(--pr-heading);
+}
+
+#pricing .pr-switch {
+  position: relative;
+  display: inline-flex;
+  height: 24px;
+  width: 44px;
+  flex-shrink: 0;
+  cursor: pointer;
+  align-items: center;
+  border-radius: 999px;
+  border: 2px solid transparent;
+  padding: 2px;
+  background: var(--pr-hairline);
+  transition: background-color 0.3s ease;
+}
+
+#pricing .pr-switch[aria-checked='true'] {
+  background: var(--pr-accent);
+}
+
+#pricing .pr-knob {
+  display: block;
+  height: 20px;
+  width: 20px;
+  border-radius: 999px;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(26, 42, 92, 0.2);
+  transition: transform 0.3s ease;
+}
+
+#pricing .pr-switch[aria-checked='true'] .pr-knob {
+  transform: translateX(20px);
+}
+
+#pricing .pr-save {
+  border-radius: 999px;
+  background: var(--pr-accent-tint);
+  padding: 4px 10px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--pr-accent-ink);
+}
+
+/* ── the four token-cost cells ──────────────────────────────────────────── */
+#pricing .pr-cells {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+#pricing .pr-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  border-radius: 16px;
+  /* The whole cell carries the colour. These four are entirely about token
+     COSTS, so the amber belongs to the surface — spread as a faint tint
+     across eight small pills instead, it read as a washed-out accident. */
+  border: 1px solid var(--token-border);
+  background: var(--token-surface);
+  padding: 18px 14px;
+  text-align: center;
+}
+
+#pricing .pr-cell-icon {
+  display: grid;
+  height: 34px;
+  width: 34px;
+  flex-shrink: 0;
+  place-items: center;
+  border-radius: 999px;
+  background: #fff;
+  /* Amber, not teal: in THIS row the subject is the token cost, so even the
+     feature glyphs belong to the amber story. Inside the plan cards the same
+     kind of icon stays teal. */
+  color: var(--token-icon);
+}
+
+#pricing .pr-cell-icon svg {
+  height: 17px;
+  width: 17px;
+}
+
+#pricing .pr-cell-name {
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.35;
+  /* 7.73:1 on the cell surface. */
+  color: var(--token-ink);
+}
+
+#pricing .pr-cell-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border-radius: 999px;
+  background: #fff;
+  padding: 4px 10px;
+  font-size: 12.5px;
+  font-weight: 600;
+  /* 8.86:1 on white. */
+  color: var(--token-ink);
+}
+
+#pricing .pr-cell-pill svg {
+  height: 13px;
+  width: 13px;
+  flex-shrink: 0;
+  color: var(--token-icon);
+}
+
+#pricing .pr-included {
+  margin-top: 20px;
+  text-align: center;
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--pr-accent-ink);
+}
+
+#pricing .pr-bonus {
+  margin-top: 8px;
+  text-align: center;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--pr-muted);
+}
+
+/* ── the plan cards ─────────────────────────────────────────────────────── */
+#pricing .pr-cards {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  align-items: stretch;
+  gap: 20px;
+  /* Room for the featured card's badge, which straddles the top edge. */
+  padding-top: 14px;
+}
+
+#pricing .pr-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  border-radius: 20px;
+  border: 1px solid var(--pr-hairline);
+  background: #fff;
+  padding: 26px 24px;
+  box-shadow: 0 8px 28px -22px rgba(26, 42, 92, 0.14);
+}
+
+#pricing .pr-card[data-featured='true'] {
+  border: 1.5px solid var(--pr-accent);
+  box-shadow: 0 14px 40px -26px rgba(30, 185, 183, 0.32);
+}
+
+#pricing .pr-popular {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  border-radius: 999px;
+  background: var(--pr-accent);
+  padding: 6px 14px;
+  font-size: 12.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  color: #fff;
+}
+
+#pricing .pr-name {
+  font-size: 19px;
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--pr-heading);
+}
+
+#pricing .pr-desc {
+  margin-top: 6px;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--pr-body);
+}
+
+#pricing .pr-price-row {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin-top: 20px;
+}
+
+#pricing .pr-price {
+  font-size: 34px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: var(--pr-heading);
+  font-variant-numeric: tabular-nums;
+}
+
+#pricing .pr-per {
+  font-size: 15px;
+  color: var(--pr-muted);
+}
+
+/* Reserved in both billing periods, so the token pills and feature lists stay
+   on one baseline across the four cards when the annual line appears. */
+#pricing .pr-billed {
+  margin-top: 6px;
+  min-height: 18px;
+  font-size: 13px;
+  color: var(--pr-muted);
+}
+
+#pricing .pr-allowance {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  margin-top: 18px;
+  border-radius: 12px;
+  /* Neutral. The amber SURFACE lives in the cost-cell band above; repeating
+     it inside all four cards is what diluted it. Only the coin stays amber. */
+  background: var(--pr-quiet);
+  padding: 11px 14px;
+  font-size: 14.5px;
+  font-weight: 500;
+  color: var(--pr-heading);
+}
+
+#pricing .pr-card[data-featured='true'] .pr-allowance {
+  background: var(--token-surface);
+}
+
+#pricing .pr-allowance svg {
+  height: 16px;
+  width: 16px;
+  flex-shrink: 0;
+  color: var(--token-icon);
+}
+
+#pricing .pr-features {
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+  margin-top: 20px;
+}
+
+#pricing .pr-feature {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--pr-body);
+  text-align: left;
+}
+
+#pricing .pr-feature svg {
+  height: 14px;
+  width: 14px;
+  flex-shrink: 0;
+  color: var(--pr-accent);
+  /* Nudged onto the first line's optical centre rather than its box top. */
+  margin-top: 3px;
+}
+
+/* A hairline closes every card, so the button reads as a resolved footer
+   rather than floating under the feature list. `margin-top: auto` plus the
+   grid's equal row heights puts all four rules — and all four buttons — on
+   one baseline. */
+#pricing .pr-cta-wrap {
+  margin-top: auto;
+  border-top: 1px solid var(--pr-footer-line);
+  padding-top: 20px;
+}
+
+#pricing .pr-cta {
+  display: flex;
+  height: 46px;
+  width: 100%;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  border: 1px solid transparent;
+  font-size: 15px;
+  font-weight: 600;
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease;
+}
+
+#pricing .pr-cta[data-variant='filled'] {
+  background: var(--pr-accent);
+  color: #fff;
+}
+
+#pricing .pr-cta[data-variant='filled']:hover {
+  background: #17908f;
+}
+
+/* Secondary: a real fill, so Plus and Unlimited stop reading as empty. */
+#pricing .pr-cta[data-variant='secondary'] {
+  background: var(--pr-secondary);
+  color: var(--pr-heading);
+}
+
+#pricing .pr-cta[data-variant='secondary']:hover {
+  background: var(--pr-accent-tint);
+  color: var(--pr-accent-ink);
+}
+
+/* Tertiary: the free tier, and the quietest thing on the row by design. */
+#pricing .pr-cta[data-variant='ghost'] {
+  border-color: var(--pr-hairline);
+  background: transparent;
+  color: var(--pr-body);
+}
+
+#pricing .pr-cta[data-variant='ghost']:hover {
+  border-color: var(--pr-accent);
+  color: var(--pr-accent-ink);
+}
+
+#pricing .pr-cta:focus-visible {
+  outline: 2px solid var(--pr-accent);
+  outline-offset: 2px;
+}
+
+/* ── the trust row ──────────────────────────────────────────────────────── */
+#pricing .pr-trust {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 32px;
+  margin-top: 40px;
+}
+
+#pricing .pr-trust-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  text-align: left;
+}
+
+/* ONE COLOUR FOR ALL FOUR. `Earn free tokens` used to override this with
+   `--token-icon`; a single indigo glyph among three teal ones read as an
+   accident rather than as a category. The override is gone rather than
+   recoloured, so nothing can reintroduce the odd one out. */
+#pricing .pr-trust-item svg {
+  height: 18px;
+  width: 18px;
+  flex-shrink: 0;
+  color: var(--pr-accent);
+  margin-top: 1px;
+}
+
+#pricing .pr-trust-title {
+  font-size: 14.5px;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--pr-heading);
+}
+
+#pricing .pr-trust-body {
+  margin-top: 3px;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--pr-body);
+}
+
+/* ── responsive ─────────────────────────────────────────────────────────── */
+
+/* 1025–1280: still four across, but tighter cards and a smaller price. */
+@media (min-width: 1025px) and (max-width: 1280px) {
+  #pricing .pr-card {
+    padding: 22px 20px;
+  }
+
+  #pricing .pr-price {
+    font-size: 30px;
+  }
+}
+
+/* 769–1024: two cards per row, cells 2x2, trust 2x2. */
+@media (min-width: 769px) and (max-width: 1024px) {
+  #pricing .pr-cards,
+  #pricing .pr-cells,
+  #pricing .pr-trust {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  #pricing .pr-card {
+    padding: 24px 22px;
+  }
+}
+
+/* <=768: one card per row, cells still 2x2, trust stacked. */
+@media (max-width: 768px) {
+  #pricing .pr-cards {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  #pricing .pr-cells {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  #pricing .pr-trust {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 20px;
+  }
+
+  #pricing .pr-card {
+    padding: 22px;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   The feature identity header.
+
+   One block, so the tile is identical in all nine sections: 44px at desktop,
+   40px below 1025, radius 14, icon 22px, and the same gap above the h2
+   everywhere. The tint and ink come from the component, since they vary by
+   feature group; everything dimensional lives here.
+   --------------------------------------------------------------------------- */
+.feature-tile__icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+}
+
+.feature-tile__icon svg {
+  width: 22px;
+  height: 22px;
+}
+
+.feature-tile__name {
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.25;
+  color: var(--text-heading);
+}
+
+.feature-tile__desc {
+  margin-top: 2px;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--text-muted);
+}
+
+/* The one spacing rule that makes the sections agree with each other. */
+.feature-tile {
+  margin-bottom: 20px;
+}
+
+@media (max-width: 1024px) {
+  .feature-tile__icon {
+    width: 40px;
+    height: 40px;
+  }
+
+  .feature-tile__icon svg {
+    width: 20px;
+    height: 20px;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   THE SECTION HEADER — one grid, one alignment, one rhythm.
+
+   Every major section opens with the same typographic structure: the feature
+   tile, the h2, then a bounded description. This class owns all three
+   relationships so no section carries its own alignment or spacing.
+
+   LEFT IS THE DEFAULT for the whole site. The page used to alternate — seven
+   sections centred, two left — and measured four different left content edges
+   (133, 137, 145, 147px) across four different container widths (1180, 1200,
+   1216, 1240) and five vertical rhythms (56, 80, 86, 116, 120px). Those
+   sections now all use `.shell` + `.section-y`, so the left edge is one number
+   down the whole page. The HERO keeps its centred composition, deliberately.
+
+   THE RHYTHM IS UNLAYERED so it beats Tailwind's `mt-*` utilities without
+   editing nine call sites. Sections keep their own `mt-4`/`mt-5` in the markup
+   and this quietly overrides them, which is what makes the vertical spacing
+   identical everywhere instead of nearly-identical.
+   --------------------------------------------------------------------------- */
+.section-head {
+  max-width: var(--type-measure-header);
+  /* Not `auto`: an auto inline margin is what centred these blocks. */
+  margin-inline: 0;
+  text-align: left;
+}
+
+/* eyebrow/tile → heading → description, one set of gaps for the whole site */
+.section-head > .feature-tile {
+  margin-bottom: 0;
+}
+
+.section-head > h2,
+.section-head > .type-h2,
+.section-head > .text-section,
+.section-head > .text-statement {
+  margin-top: 16px;
+}
+
+.section-head > p {
+  margin-top: 18px;
+  /* Descriptions stay at a readable measure rather than the container width. */
+  max-width: var(--type-measure-body);
+}
+
+.section-head > p + p {
+  margin-top: 10px;
+}
+
+/* The first child never carries a top margin, whatever it happens to be. */
+.section-head > :first-child {
+  margin-top: 0;
+}
+
+/* ---------------------------------------------------------------------------
+   MY SKINCARE PLAN & CALENDAR.
+
+   The section's every dimension lives here rather than in Tailwind utilities,
+   for two reasons. First, the values are exact and numerous — 11.5px letter
+   spacing, a 26px radius, two shadow stacks — and reading them as one block
+   beats reading them spread across forty `className` strings. Second, and
+   decisively: the unlayered role classes higher up this file (`.type-small`,
+   `.ink-muted`, `.text-lead`) BEAT any Tailwind utility inside
+   `@layer utilities`, so a `text-[13.5px]` here would silently lose. Plain
+   scoped CSS at this position wins predictably.
+
+   Everything is scoped to `#skin-plan`, so nothing here can reach another
+   section.
+
+   THE BREAKPOINT IS 1000px, not one of Tailwind's — it is where the flow band
+   stops fitting three steps side by side.
+   --------------------------------------------------------------------------- */
+
+#skin-plan {
+  /* Reserved height for the agenda list, so switching from an eight-event day
+     to an eleven-event one does not shunt the bands below it up the page.
+     Set from the measured tallest day, not estimated. */
+  --sp-agenda-min: 800px;
+  --sp-hairline: #ebeef7;
+  --sp-band: #f7f8fd;
+}
+
+/* ── the identity row ─────────────────────────────────────────────────────── */
+
+#skin-plan .sp-identity {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+#skin-plan .sp-identity-icon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  background: #edeffa;
+  color: #5d64d3;
+}
+
+#skin-plan .sp-identity-icon svg {
+  width: 22px;
+  height: 22px;
+}
+
+#skin-plan .sp-identity-name {
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.25;
+  color: var(--text-heading);
+}
+
+/* ── the panel: one object, four bands, hairlines instead of gaps ─────────── */
+
+#skin-plan .sp-panel {
+  margin-top: 40px;
+  background: #ffffff;
+  border-radius: 26px;
+  /* Load-bearing: it is what clips band 1's fill to the top two corners. */
+  overflow: hidden;
+  box-shadow: 0 16px 44px -30px rgba(26, 42, 92, 0.26);
+}
+
+#skin-plan .sp-panel > * + * {
+  border-top: 1px solid var(--sp-hairline);
+}
+
+@media (width >= 1025px) {
+  #skin-plan .sp-panel {
+    margin-top: 56px;
+  }
+}
+
+/* ── band 1 — scan → plan → calendar ─────────────────────────────────────── */
+
+#skin-plan .sp-flow {
+  background: var(--sp-band);
+  padding: 22px 30px;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr auto 1fr;
+  align-items: center;
+}
+
+#skin-plan .sp-step {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+#skin-plan .sp-step-icon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 36px;
+  height: 36px;
+  border-radius: 11px;
+}
+
+#skin-plan .sp-step-icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+#skin-plan .sp-step-text {
+  display: block;
+  min-width: 0;
+}
+
+#skin-plan .sp-step-title {
+  display: block;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--text-heading);
+}
+
+#skin-plan .sp-step-sub {
+  display: block;
+  margin-top: 2px;
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: var(--text-muted);
+}
+
+#skin-plan .sp-arrow {
+  display: grid;
+  place-items: center;
+  padding-inline: 18px;
+  color: #c7cfe3;
+}
+
+#skin-plan .sp-arrow svg {
+  width: 22px;
+  height: 22px;
+}
+
+/* ── band 2 — the week strip ─────────────────────────────────────────────── */
+
+#skin-plan .sp-week {
+  background: #ffffff;
+  padding: 22px 26px 24px;
+}
+
+/* `1fr auto 1fr` rather than `space-between`, so the month is centred on the
+   BAND and not on whatever is left over after two unequal control groups. */
+#skin-plan .sp-week-top {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: start;
+  gap: 12px;
+}
+
+#skin-plan .sp-nav {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border: 0;
+  background: transparent;
+  border-radius: 8px;
+  color: #aeb8d0;
+  cursor: pointer;
+  transition:
+    color 0.18s ease,
+    background-color 0.18s ease;
+}
+
+#skin-plan .sp-nav svg {
+  width: 20px;
+  height: 20px;
+}
+
+#skin-plan .sp-nav:hover {
+  color: var(--text-heading);
+  background: var(--sp-band);
+}
+
+#skin-plan .sp-nav--prev {
+  justify-self: start;
+}
+
+#skin-plan .sp-month-wrap {
+  text-align: center;
+}
+
+#skin-plan .sp-month {
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  color: var(--text-heading);
+}
+
+/* The selected weekday, on its own. No `Today` prefix — the app has none. */
+#skin-plan .sp-selected-day {
+  margin-top: 2px;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.2;
+  color: #16a34a;
+}
+
+#skin-plan .sp-week-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-self: end;
+}
+
+#skin-plan .sp-today {
+  border-radius: 999px;
+  padding: 7px 15px;
+  font-size: 13.5px;
+  font-weight: 600;
+  line-height: 1.2;
+  background: #ffffff;
+  border: 1px solid var(--sp-hairline);
+  color: #0e6a72;
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    border-color 0.18s ease,
+    opacity 0.18s ease;
+}
+
+#skin-plan .sp-today:hover {
+  border-color: #1eb9b7;
+}
+
+/* Dimmed, NOT removed: still focusable, still announced. */
+#skin-plan .sp-today[aria-disabled='true'] {
+  opacity: 0.5;
+}
+
+#skin-plan .sp-days {
+  display: grid;
+  /* `minmax(0, ...)`, NOT a bare `1fr`. A bare `1fr` is `minmax(auto, 1fr)`
+     and cannot shrink below its content's min-content width — the 42px dot
+     row plus 8px of cell padding pinned all seven tracks at 50px, 350px of
+     them inside a 280px band at 375px wide, and the panel's `overflow:
+     hidden` then ate Saturday without a scrollbar to show for it. */
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 4px;
+  margin-top: 20px;
+  align-items: center;
+}
+
+#skin-plan .sp-day {
+  display: block;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  border-radius: 16px;
+  padding: 12px 4px;
+  text-align: center;
+  cursor: pointer;
+  transition: box-shadow 0.18s ease;
+}
+
+#skin-plan .sp-day-wd {
+  display: block;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  line-height: 1.2;
+  color: #a7b0c6;
+}
+
+#skin-plan .sp-day-date {
+  display: block;
+  margin-top: 6px;
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--text-heading);
+}
+
+#skin-plan .sp-dots {
+  display: flex;
+  justify-content: center;
+  gap: 3px;
+  margin-top: 9px;
+  height: 6px;
+  /* So a rounding error at some untested width drops a dot rather than
+     painting over the neighbouring day. */
+  max-width: 100%;
+  overflow: hidden;
+}
+
+#skin-plan .sp-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+}
+
+/* THE SELECTED CELL. No border and no ring: it is white, it is 12px taller
+   than its neighbours, and it is lifted. The elevation plus the extra height
+   IS the selection signal — a teal outline over the top would be a second,
+   louder signal saying exactly the same thing. */
+#skin-plan .sp-day[aria-pressed='true'] {
+  background: #ffffff;
+  border: none;
+  padding: 18px 4px;
+  box-shadow:
+    0 6px 20px -8px rgba(26, 42, 92, 0.2),
+    0 2px 5px rgba(26, 42, 92, 0.05);
+}
+
+#skin-plan .sp-day[aria-pressed='true'] .sp-day-wd {
+  color: #16a34a;
+}
+
+/* Inset, so a ring on the first or last cell is not clipped by the band. */
+#skin-plan .sp-day:focus-visible,
+#skin-plan .sp-nav:focus-visible,
+#skin-plan .sp-today:focus-visible {
+  outline: 2px solid var(--text-accent);
+  outline-offset: -2px;
+}
+
+/* ── band 3 — the agenda ─────────────────────────────────────────────────── */
+
+#skin-plan .sp-agenda {
+  background: var(--sp-band);
+  padding: 22px 30px 26px;
+}
+
+#skin-plan .sp-agenda-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+#skin-plan .sp-agenda-h {
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--text-heading);
+}
+
+#skin-plan .sp-count {
+  flex: 0 0 auto;
+  border-radius: 999px;
+  padding: 5px 12px;
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1.3;
+  background: #e4f5f4;
+  color: #0e6a72;
+  white-space: nowrap;
+}
+
+#skin-plan .sp-list {
+  list-style: none;
+  margin: 16px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: var(--sp-agenda-min);
+}
+
+#skin-plan .sp-event {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #ffffff;
+  border-radius: 14px;
+  padding: 13px 16px;
+  box-shadow: 0 2px 8px -5px rgba(26, 42, 92, 0.14);
+}
+
+#skin-plan .sp-event-icon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+}
+
+#skin-plan .sp-event-icon svg {
+  width: 19px;
+  height: 19px;
+}
+
+#skin-plan .sp-event-main {
+  flex: 1;
+  min-width: 0;
+}
+
+#skin-plan .sp-event-name {
+  display: block;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--text-heading);
+}
+
+#skin-plan .sp-event-type {
+  display: block;
+  margin-top: 2px;
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+#skin-plan .sp-event-meta {
+  flex: 0 0 auto;
+  text-align: right;
+}
+
+#skin-plan .sp-event-time {
+  display: block;
+  font-size: 13.5px;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--text-heading);
+}
+
+#skin-plan .sp-event-rec {
+  display: block;
+  margin-top: 2px;
+  font-size: 12px;
+  line-height: 1.3;
+  color: var(--text-muted);
+}
+
+/* ── band 4 — the curiosity line ─────────────────────────────────────────── */
+
+#skin-plan .sp-curiosity {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #ffffff;
+  padding: 17px 30px;
+}
+
+#skin-plan .sp-curiosity svg {
+  flex: 0 0 auto;
+  width: 17px;
+  height: 17px;
+  color: #1eb9b7;
+}
+
+#skin-plan .sp-curiosity p {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text-body);
+}
+
+#skin-plan .sp-curiosity strong {
+  font-weight: 600;
+  color: var(--text-heading);
+}
+
+#skin-plan .sp-note {
+  margin-top: 16px;
+}
+
+/* ── ≤1000px ─────────────────────────────────────────────────────────────── */
+
+@media (width <= 1000px) {
+  #skin-plan {
+    /* No reserved height: at one column a taller day costs a scroll, not a
+       jump in anything beside it. */
+    --sp-agenda-min: 0px;
+  }
+
+  #skin-plan .sp-panel {
+    border-radius: 20px;
+    margin-top: 32px;
+  }
+
+  /* Band 1 stacks and the arrows turn to point down, so three tiles still
+     read as a sequence. */
+  #skin-plan .sp-flow {
+    grid-template-columns: 1fr;
+    row-gap: 2px;
+  }
+
+  #skin-plan .sp-arrow {
+    justify-self: start;
+    margin-inline-start: 8px;
+    padding-inline: 0;
+    padding-block: 6px;
+    transform: rotate(90deg);
+  }
+
+  /* The month moves onto its own line above the controls. */
+  #skin-plan .sp-week {
+    padding: 20px 16px;
+  }
+
+  #skin-plan .sp-week-top {
+    grid-template-columns: auto 1fr;
+    row-gap: 14px;
+  }
+
+  #skin-plan .sp-month-wrap {
+    grid-column: 1 / -1;
+    grid-row: 1;
+    text-align: left;
+  }
+
+  #skin-plan .sp-nav--prev {
+    grid-column: 1;
+    grid-row: 2;
+  }
+
+  #skin-plan .sp-week-right {
+    grid-column: 2;
+    grid-row: 2;
+  }
+
+  #skin-plan .sp-days {
+    gap: 3px;
+  }
+
+  /* A 375px cell is 37.4px wide and 33.4px inside its padding, so the six-
+     pixel dots at a 3px gap (42px) do not fit. Five at 5px with a 2px gap
+     is 33px. Nothing is lost: the cap is reached on all seven days at every
+     width, so the row is the same on every cell either way. */
+  #skin-plan .sp-day {
+    padding-inline: 2px;
+  }
+
+  #skin-plan .sp-day[aria-pressed='true'] {
+    padding-inline: 2px;
+  }
+
+  #skin-plan .sp-dots {
+    gap: 2px;
+    height: 5px;
+  }
+
+  #skin-plan .sp-dot {
+    width: 5px;
+    height: 5px;
+  }
+
+  #skin-plan .sp-day-date {
+    font-size: 16px;
+  }
+
+  #skin-plan .sp-agenda {
+    padding: 18px 16px;
+  }
+
+  /* The heading and the count would collide at 375 on a long weekday. */
+  #skin-plan .sp-agenda-top {
+    flex-wrap: wrap;
+    row-gap: 6px;
+  }
+
+  /* The time block drops under the name rather than squeezing it. */
+  #skin-plan .sp-event {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  #skin-plan .sp-event-meta {
+    flex-basis: 100%;
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    margin-top: 6px;
+    /* 38px tile + 12px gap, so it lines up under the event's name. */
+    padding-inline-start: 50px;
+    text-align: left;
+  }
+
+  #skin-plan .sp-event-rec {
+    margin-top: 0;
+  }
+
+  #skin-plan .sp-curiosity {
+    padding: 15px 18px;
+    align-items: flex-start;
+  }
+
+  #skin-plan .sp-curiosity svg {
+    margin-top: 3px;
   }
 }

@@ -1,0 +1,302 @@
+{
+  "375": {
+    "gridCols": "312px",
+    "colGap": "normal",
+    "rowGap": "16px",
+    "alignItems": "flex-start",
+    "children": [
+      {
+        "what": "THREE BOXES",
+        "display": "contents",
+        "position": "static",
+        "stickyTop": "auto",
+        "gridColumn": "auto / auto",
+        "gridRow": "auto / auto",
+        "order": "0",
+        "left": 24,
+        "width": 312,
+        "top": 2235,
+        "height": 893
+      },
+      {
+        "what": "PLAN PANEL",
+        "display": "block",
+        "position": "static",
+        "stickyTop": "auto",
+        "gridColumn": "auto / auto",
+        "gridRow": "auto / auto",
+        "order": "1",
+        "left": 24,
+        "width": 312,
+        "top": 1010,
+        "height": 1208
+      }
+    ],
+    "h2": {
+      "text": "A routine built around your skin.",
+      "lineHeight": 32.5,
+      "height": 65,
+      "linesByBaseline": 2,
+      "linesByHeight": 2
+    },
+    "lead": "SkinTrix reads your own scan and writes the whole plan from it — morning and evening routines, weekly treatments, supplements, in-clinic options, daily habits, and a projection for every concern it fi",
+    "hint": "Switch tabs to see how the full plan is built.",
+    "firstBlockOnPage": "AI-Generated Plan6 Aug",
+    "visualOrder": [
+      "AI-Generated Plan6 Aug",
+      "EverythingPore Visibil",
+      "ForecastRoutineTreatme",
+      "Overall Skin Forecast1",
+      "About this stepPore Vi",
+      "From your scanThis pla",
+      "What's in this plan24 "
+    ],
+    "overflow": 0,
+    "sticky": {
+      "scrolledBy": 953,
+      "child0Moved": -953,
+      "child1Moved": -953
+    },
+    "errors": []
+  },
+  "768": {
+    "gridCols": "673px",
+    "colGap": "normal",
+    "rowGap": "16px",
+    "alignItems": "flex-start",
+    "children": [
+      {
+        "what": "THREE BOXES",
+        "display": "contents",
+        "position": "static",
+        "stickyTop": "auto",
+        "gridColumn": "auto / auto",
+        "gridRow": "auto / auto",
+        "order": "0",
+        "left": 40,
+        "width": 673,
+        "top": 1405,
+        "height": 693
+      },
+      {
+        "what": "PLAN PANEL",
+        "display": "block",
+        "position": "static",
+        "stickyTop": "auto",
+        "gridColumn": "auto / auto",
+        "gridRow": "auto / auto",
+        "order": "1",
+        "left": 40,
+        "width": 673,
+        "top": 254,
+        "height": 1135
+      }
+    ],
+    "h2": {
+      "text": "A routine built around your skin.",
+      "lineHeight": 32.5,
+      "height": 33,
+      "linesByBaseline": 1,
+      "linesByHeight": 1
+    },
+    "lead": "SkinTrix reads your own scan and writes the whole plan from it — morning and evening routines, weekly treatments, supplements, in-clinic options, daily habits, and a projection for every concern it fi",
+    "hint": "Switch tabs to see how the full plan is built.",
+    "firstBlockOnPage": "AI-Generated Plan6 Aug",
+    "visualOrder": [
+      "AI-Generated Plan6 Aug",
+      "EverythingPore Visibil",
+      "ForecastRoutineTreatme",
+      "Overall Skin Forecast1",
+      "About this stepPore Vi",
+      "From your scanThis pla",
+      "What's in this plan24 "
+    ],
+    "overflow": 0,
+    "sticky": {
+      "scrolledBy": 428,
+      "child0Moved": -428,
+      "child1Moved": -428
+    },
+    "errors": []
+  },
+  "1024": {
+    "gridCols": "418.047px 438.953px",
+    "colGap": "72px",
+    "rowGap": "16px",
+    "alignItems": "flex-start",
+    "children": [
+      {
+        "what": "THREE BOXES",
+        "display": "block",
+        "position": "sticky",
+        "stickyTop": "96px",
+        "gridColumn": "auto / auto",
+        "gridRow": "auto / auto",
+        "order": "0",
+        "left": 40,
+        "width": 418,
+        "top": 290,
+        "height": 750
+      },
+      {
+        "what": "PLAN PANEL",
+        "display": "block",
+        "position": "static",
+        "stickyTop": "auto",
+        "gridColumn": "auto / auto",
+        "gridRow": "auto / auto",
+        "order": "1",
+        "left": 530,
+        "width": 439,
+        "top": 290,
+        "height": 1198
+      }
+    ],
+    "h2": {
+      "text": "A routine built around your skin.",
+      "lineHeight": 40,
+      "height": 40,
+      "linesByBaseline": 1,
+      "linesByHeight": 1
+    },
+    "lead": "SkinTrix reads your own scan and writes the whole plan from it — morning and evening routines, weekly treatments, supplements, in-clinic options, daily habits, and a projection for every concern it fi",
+    "hint": "Switch tabs to see how the full plan is built.",
+    "firstBlockOnPage": "What's in this plan24 ",
+    "visualOrder": [
+      "What's in this plan24 ",
+      "AI-Generated Plan6 Aug",
+      "EverythingPore Visibil",
+      "ForecastRoutineTreatme",
+      "About this stepPore Vi",
+      "Overall Skin Forecast1",
+      "From your scanThis pla"
+    ],
+    "overflow": 0,
+    "sticky": {
+      "scrolledBy": 629,
+      "child0Moved": -194,
+      "child1Moved": -629
+    },
+    "errors": []
+  },
+  "1280": {
+    "gridCols": "519.016px 544.984px",
+    "colGap": "72px",
+    "rowGap": "16px",
+    "alignItems": "flex-start",
+    "children": [
+      {
+        "what": "THREE BOXES",
+        "display": "block",
+        "position": "sticky",
+        "stickyTop": "96px",
+        "gridColumn": "auto / auto",
+        "gridRow": "auto / auto",
+        "order": "0",
+        "left": 65,
+        "width": 519,
+        "top": 582,
+        "height": 715
+      },
+      {
+        "what": "PLAN PANEL",
+        "display": "block",
+        "position": "static",
+        "stickyTop": "auto",
+        "gridColumn": "auto / auto",
+        "gridRow": "auto / auto",
+        "order": "1",
+        "left": 656,
+        "width": 545,
+        "top": 582,
+        "height": 1158
+      }
+    ],
+    "h2": {
+      "text": "A routine built around your skin.",
+      "lineHeight": 50,
+      "height": 50,
+      "linesByBaseline": 1,
+      "linesByHeight": 1
+    },
+    "lead": "SkinTrix reads your own scan and writes the whole plan from it — morning and evening routines, weekly treatments, supplements, in-clinic options, daily habits, and a projection for every concern it fi",
+    "hint": "Switch tabs to see how the full plan is built.",
+    "firstBlockOnPage": "What's in this plan24 ",
+    "visualOrder": [
+      "What's in this plan24 ",
+      "AI-Generated Plan6 Aug",
+      "EverythingPore Visibil",
+      "ForecastRoutineTreatme",
+      "Overall Skin Forecast1",
+      "About this stepPore Vi",
+      "From your scanThis pla"
+    ],
+    "overflow": 0,
+    "sticky": {
+      "scrolledBy": 610,
+      "child0Moved": -486,
+      "child1Moved": -610
+    },
+    "errors": []
+  },
+  "1440": {
+    "gridCols": "519.016px 544.984px",
+    "colGap": "72px",
+    "rowGap": "16px",
+    "alignItems": "flex-start",
+    "children": [
+      {
+        "what": "THREE BOXES",
+        "display": "block",
+        "position": "sticky",
+        "stickyTop": "96px",
+        "gridColumn": "auto / auto",
+        "gridRow": "auto / auto",
+        "order": "0",
+        "left": 145,
+        "width": 519,
+        "top": 598,
+        "height": 715
+      },
+      {
+        "what": "PLAN PANEL",
+        "display": "block",
+        "position": "static",
+        "stickyTop": "auto",
+        "gridColumn": "auto / auto",
+        "gridRow": "auto / auto",
+        "order": "1",
+        "left": 736,
+        "width": 545,
+        "top": 598,
+        "height": 1165
+      }
+    ],
+    "h2": {
+      "text": "A routine built around your skin.",
+      "lineHeight": 50,
+      "height": 50,
+      "linesByBaseline": 1,
+      "linesByHeight": 1
+    },
+    "lead": "SkinTrix reads your own scan and writes the whole plan from it — morning and evening routines, weekly treatments, supplements, in-clinic options, daily habits, and a projection for every concern it fi",
+    "hint": "Switch tabs to see how the full plan is built.",
+    "firstBlockOnPage": "What's in this plan24 ",
+    "visualOrder": [
+      "What's in this plan24 ",
+      "AI-Generated Plan6 Aug",
+      "EverythingPore Visibil",
+      "ForecastRoutineTreatme",
+      "Overall Skin Forecast1",
+      "About this stepPore Vi",
+      "From your scanThis pla"
+    ],
+    "overflow": 0,
+    "sticky": {
+      "scrolledBy": 953,
+      "child0Moved": -504,
+      "child1Moved": -953
+    },
+    "errors": []
+  }
+}

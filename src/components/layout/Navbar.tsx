@@ -20,8 +20,8 @@ export function Navbar() {
   /* Both links in this bar are fragments of the LANDING page. On a standalone
      page (/delete-account) there is no #top and no #download to scroll to, so
      they have to become document navigations back to '/'. On '/' itself they
-     stay bare fragments — Lenis only intercepts `a[href^="#"]`, and a
-     '/#download' href would fall through it to a native jump. */
+     stay bare fragments: the browser resolves a fragment in place, where a
+     '/#download' href is a document navigation and reloads the page. */
   const path = window.location.pathname
   const home = path === '/' || path === '/index.html' ? '' : '/'
 

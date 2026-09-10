@@ -36,6 +36,9 @@
    The three states — semantic data, pointing at the scoped tokens
    =========================================================================== */
 
+import { FeatureTile } from '@/components/ui/FeatureTile'
+import { LuSprayCan } from 'react-icons/lu'
+
 type VerdictState = {
   /** The header band's background. */
   band: string
@@ -115,17 +118,16 @@ export function CompatibilityVerdicts({ headingId }: { headingId: string }) {
           above the cards, still left-aligned. `top: 96px` clears the fixed
           header. */}
       <div className="min-[1024px]:sticky min-[1024px]:top-24">
-        <p
-          className="text-[12px] uppercase"
-          style={{ color: 'var(--brand-teal)', letterSpacing: '0.14em', fontWeight: 500 }}
-        >
-          In the app
-        </p>
+        <FeatureTile
+          group="planning"
+          icon={LuSprayCan}
+          name="Product Compatibility"
+          description="In the app"
+        />
 
         <h2
           id={headingId}
-          className="mt-4 text-[28px] leading-[1.15] tracking-[-0.02em] min-[640px]:text-[34px] min-[1024px]:text-[48px]"
-          style={{ color: 'var(--ink-navy)', fontWeight: 500 }}
+          className="text-section"
         >
           The same product.{' '}
           <span className="min-[1024px]:block">Three different answers.</span>

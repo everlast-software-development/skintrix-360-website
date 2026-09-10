@@ -1,0 +1,1365 @@
+{
+  "w1440": {
+    "month": "September '26",
+    "weekdayUnder": "Wednesday",
+    "agendaHeading": "Wednesday, September 9",
+    "count": "9 events",
+    "dates": [
+      "6",
+      "7",
+      "8",
+      "9",
+      "10",
+      "11",
+      "12"
+    ],
+    "weekdays": [
+      "Sun",
+      "Mon",
+      "Tue",
+      "Wed",
+      "Thu",
+      "Fri",
+      "Sat"
+    ],
+    "selectedIndex": 3,
+    "selectedDate": "9",
+    "selectedLabel": "Wednesday, September 9, 2026, today, 9 events",
+    "dotCounts": [
+      5,
+      5,
+      5,
+      5,
+      5,
+      5,
+      5
+    ],
+    "eventNames": [
+      "Morning Skincare Routine",
+      "Hydration: Lifestyle Reminder",
+      "Hydrolysed Collagen Peptides",
+      "Sun habits: Lifestyle Reminder",
+      "Lutein and Zeaxanthin",
+      "Omega-3 Fatty Acids (EPA and DHA)",
+      "Eye care habits: Lifestyle Reminder",
+      "Evening Skincare Routine",
+      "Cooling Hydrogel Eye Mask"
+    ],
+    "eventTypes": [
+      "Morning Routine",
+      "Lifestyle",
+      "Supplement",
+      "Lifestyle",
+      "Supplement",
+      "Supplement",
+      "Lifestyle",
+      "Evening Routine",
+      "Treatment"
+    ],
+    "eventTimes": [
+      "7:00 AM",
+      "7:15 AM",
+      "7:30 AM",
+      "11:30 AM",
+      "12:30 PM",
+      "7:30 PM",
+      "8:30 PM",
+      "9:00 PM",
+      "9:00 PM"
+    ],
+    "selectedCell": {
+      "border": "0px none",
+      "outline": "none 3px",
+      "background": "rgb(255, 255, 255)",
+      "paddingBlock": "18px",
+      "boxShadow": "rgba(26, 42, 92, 0.2) 0px 6px 20px -8px, rgba(26, 42, 92, 0.05) 0px 2p",
+      "height": 93,
+      "wdColour": "rgb(22, 163, 74)"
+    },
+    "unselectedCell": {
+      "paddingBlock": "12px",
+      "height": 81,
+      "boxShadow": "none",
+      "background": "rgba(0, 0, 0, 0)"
+    },
+    "listMinHeight": "800px",
+    "listHeight": 800,
+    "listContent": 800,
+    "curiosityTop": 10290,
+    "noteTop": 10362,
+    "todayDimmed": "0.5",
+    "todayAriaDisabled": "true",
+    "panel": {
+      "radius": "26px",
+      "overflow": "hidden",
+      "shadow": "rgba(26, 42, 92, 0.26) 0px 16px 44px -30px",
+      "bands": [
+        {
+          "cls": "sp-flow",
+          "borderTop": "0px rgb(71, 80, 107)",
+          "padding": "22px 30px",
+          "bg": "rgb(247, 248, 253)"
+        },
+        {
+          "cls": "sp-week",
+          "borderTop": "1px rgb(235, 238, 247)",
+          "padding": "22px 26px 24px",
+          "bg": "rgb(255, 255, 255)"
+        },
+        {
+          "cls": "sp-agenda",
+          "borderTop": "1px rgb(235, 238, 247)",
+          "padding": "22px 30px 26px",
+          "bg": "rgb(247, 248, 253)"
+        },
+        {
+          "cls": "sp-curiosity",
+          "borderTop": "1px rgb(235, 238, 247)",
+          "padding": "17px 30px",
+          "bg": "rgb(255, 255, 255)"
+        }
+      ]
+    },
+    "flowCols": "320px 58px 320px 58px 320px",
+    "arrowTransform": "none",
+    "stripRole": "group",
+    "stripLabel": "Select a day",
+    "agendaLive": "polite",
+    "overflow": 0,
+    "clock": "Wed Sep 09 2026",
+    "errors": []
+  },
+  "w1024": {
+    "month": "September '26",
+    "weekdayUnder": "Wednesday",
+    "agendaHeading": "Wednesday, September 9",
+    "count": "9 events",
+    "dates": [
+      "6",
+      "7",
+      "8",
+      "9",
+      "10",
+      "11",
+      "12"
+    ],
+    "weekdays": [
+      "Sun",
+      "Mon",
+      "Tue",
+      "Wed",
+      "Thu",
+      "Fri",
+      "Sat"
+    ],
+    "selectedIndex": 3,
+    "selectedDate": "9",
+    "selectedLabel": "Wednesday, September 9, 2026, today, 9 events",
+    "dotCounts": [
+      5,
+      5,
+      5,
+      5,
+      5,
+      5,
+      5
+    ],
+    "eventNames": [
+      "Morning Skincare Routine",
+      "Hydration: Lifestyle Reminder",
+      "Hydrolysed Collagen Peptides",
+      "Sun habits: Lifestyle Reminder",
+      "Lutein and Zeaxanthin",
+      "Omega-3 Fatty Acids (EPA and DHA)",
+      "Eye care habits: Lifestyle Reminder",
+      "Evening Skincare Routine",
+      "Cooling Hydrogel Eye Mask"
+    ],
+    "eventTypes": [
+      "Morning Routine",
+      "Lifestyle",
+      "Supplement",
+      "Lifestyle",
+      "Supplement",
+      "Supplement",
+      "Lifestyle",
+      "Evening Routine",
+      "Treatment"
+    ],
+    "eventTimes": [
+      "7:00 AM",
+      "7:15 AM",
+      "7:30 AM",
+      "11:30 AM",
+      "12:30 PM",
+      "7:30 PM",
+      "8:30 PM",
+      "9:00 PM",
+      "9:00 PM"
+    ],
+    "selectedCell": {
+      "border": "0px none",
+      "outline": "none 3px",
+      "background": "rgb(255, 255, 255)",
+      "paddingBlock": "18px",
+      "boxShadow": "rgba(26, 42, 92, 0.2) 0px 6px 20px -8px, rgba(26, 42, 92, 0.05) 0px 2p",
+      "height": 93,
+      "wdColour": "rgb(22, 163, 74)"
+    },
+    "unselectedCell": {
+      "paddingBlock": "12px",
+      "height": 81,
+      "boxShadow": "none",
+      "background": "rgba(0, 0, 0, 0)"
+    },
+    "listMinHeight": "800px",
+    "listHeight": 800,
+    "listContent": 800,
+    "curiosityTop": 9103,
+    "noteTop": 9175,
+    "todayDimmed": "0.5",
+    "todayAriaDisabled": "true",
+    "panel": {
+      "radius": "26px",
+      "overflow": "hidden",
+      "shadow": "rgba(26, 42, 92, 0.26) 0px 16px 44px -30px",
+      "bands": [
+        {
+          "cls": "sp-flow",
+          "borderTop": "0px rgb(71, 80, 107)",
+          "padding": "22px 30px",
+          "bg": "rgb(247, 248, 253)"
+        },
+        {
+          "cls": "sp-week",
+          "borderTop": "1px rgb(235, 238, 247)",
+          "padding": "22px 26px 24px",
+          "bg": "rgb(255, 255, 255)"
+        },
+        {
+          "cls": "sp-agenda",
+          "borderTop": "1px rgb(235, 238, 247)",
+          "padding": "22px 30px 26px",
+          "bg": "rgb(247, 248, 253)"
+        },
+        {
+          "cls": "sp-curiosity",
+          "borderTop": "1px rgb(235, 238, 247)",
+          "padding": "17px 30px",
+          "bg": "rgb(255, 255, 255)"
+        }
+      ]
+    },
+    "flowCols": "251px 58px 251px 58px 251px",
+    "arrowTransform": "none",
+    "stripRole": "group",
+    "stripLabel": "Select a day",
+    "agendaLive": "polite",
+    "overflow": 0,
+    "clock": "Wed Sep 09 2026",
+    "errors": []
+  },
+  "w768": {
+    "month": "September '26",
+    "weekdayUnder": "Wednesday",
+    "agendaHeading": "Wednesday, September 9",
+    "count": "9 events",
+    "dates": [
+      "6",
+      "7",
+      "8",
+      "9",
+      "10",
+      "11",
+      "12"
+    ],
+    "weekdays": [
+      "Sun",
+      "Mon",
+      "Tue",
+      "Wed",
+      "Thu",
+      "Fri",
+      "Sat"
+    ],
+    "selectedIndex": 3,
+    "selectedDate": "9",
+    "selectedLabel": "Wednesday, September 9, 2026, today, 9 events",
+    "dotCounts": [
+      5,
+      5,
+      5,
+      5,
+      5,
+      5,
+      5
+    ],
+    "eventNames": [
+      "Morning Skincare Routine",
+      "Hydration: Lifestyle Reminder",
+      "Hydrolysed Collagen Peptides",
+      "Sun habits: Lifestyle Reminder",
+      "Lutein and Zeaxanthin",
+      "Omega-3 Fatty Acids (EPA and DHA)",
+      "Eye care habits: Lifestyle Reminder",
+      "Evening Skincare Routine",
+      "Cooling Hydrogel Eye Mask"
+    ],
+    "eventTypes": [
+      "Morning Routine",
+      "Lifestyle",
+      "Supplement",
+      "Lifestyle",
+      "Supplement",
+      "Supplement",
+      "Lifestyle",
+      "Evening Routine",
+      "Treatment"
+    ],
+    "eventTimes": [
+      "7:00 AM",
+      "7:15 AM",
+      "7:30 AM",
+      "11:30 AM",
+      "12:30 PM",
+      "7:30 PM",
+      "8:30 PM",
+      "9:00 PM",
+      "9:00 PM"
+    ],
+    "selectedCell": {
+      "border": "0px none",
+      "outline": "none 3px",
+      "background": "rgb(255, 255, 255)",
+      "paddingBlock": "18px",
+      "boxShadow": "rgba(26, 42, 92, 0.2) 0px 6px 20px -8px, rgba(26, 42, 92, 0.05) 0px 2p",
+      "height": 86,
+      "wdColour": "rgb(22, 163, 74)"
+    },
+    "unselectedCell": {
+      "paddingBlock": "12px",
+      "height": 74,
+      "boxShadow": "none",
+      "background": "rgba(0, 0, 0, 0)"
+    },
+    "listMinHeight": "0px",
+    "listHeight": 965,
+    "listContent": 965,
+    "curiosityTop": 10261,
+    "noteTop": 10329,
+    "todayDimmed": "0.5",
+    "todayAriaDisabled": "true",
+    "panel": {
+      "radius": "20px",
+      "overflow": "hidden",
+      "shadow": "rgba(26, 42, 92, 0.26) 0px 16px 44px -30px",
+      "bands": [
+        {
+          "cls": "sp-flow",
+          "borderTop": "0px rgb(71, 80, 107)",
+          "padding": "22px 30px",
+          "bg": "rgb(247, 248, 253)"
+        },
+        {
+          "cls": "sp-week",
+          "borderTop": "1px rgb(235, 238, 247)",
+          "padding": "20px 16px",
+          "bg": "rgb(255, 255, 255)"
+        },
+        {
+          "cls": "sp-agenda",
+          "borderTop": "1px rgb(235, 238, 247)",
+          "padding": "18px 16px",
+          "bg": "rgb(247, 248, 253)"
+        },
+        {
+          "cls": "sp-curiosity",
+          "borderTop": "1px rgb(235, 238, 247)",
+          "padding": "15px 18px",
+          "bg": "rgb(255, 255, 255)"
+        }
+      ]
+    },
+    "flowCols": "613px",
+    "arrowTransform": "matrix(0, 1, -1, 0, 0, 0)",
+    "stripRole": "group",
+    "stripLabel": "Select a day",
+    "agendaLive": "polite",
+    "overflow": 0,
+    "clock": "Wed Sep 09 2026",
+    "errors": []
+  },
+  "w375": {
+    "month": "September '26",
+    "weekdayUnder": "Wednesday",
+    "agendaHeading": "Wednesday, September 9",
+    "count": "9 events",
+    "dates": [
+      "6",
+      "7",
+      "8",
+      "9",
+      "10",
+      "11",
+      "12"
+    ],
+    "weekdays": [
+      "Sun",
+      "Mon",
+      "Tue",
+      "Wed",
+      "Thu",
+      "Fri",
+      "Sat"
+    ],
+    "selectedIndex": 3,
+    "selectedDate": "9",
+    "selectedLabel": "Wednesday, September 9, 2026, today, 9 events",
+    "dotCounts": [
+      5,
+      5,
+      5,
+      5,
+      5,
+      5,
+      5
+    ],
+    "eventNames": [
+      "Morning Skincare Routine",
+      "Hydration: Lifestyle Reminder",
+      "Hydrolysed Collagen Peptides",
+      "Sun habits: Lifestyle Reminder",
+      "Lutein and Zeaxanthin",
+      "Omega-3 Fatty Acids (EPA and DHA)",
+      "Eye care habits: Lifestyle Reminder",
+      "Evening Skincare Routine",
+      "Cooling Hydrogel Eye Mask"
+    ],
+    "eventTypes": [
+      "Morning Routine",
+      "Lifestyle",
+      "Supplement",
+      "Lifestyle",
+      "Supplement",
+      "Supplement",
+      "Lifestyle",
+      "Evening Routine",
+      "Treatment"
+    ],
+    "eventTimes": [
+      "7:00 AM",
+      "7:15 AM",
+      "7:30 AM",
+      "11:30 AM",
+      "12:30 PM",
+      "7:30 PM",
+      "8:30 PM",
+      "9:00 PM",
+      "9:00 PM"
+    ],
+    "selectedCell": {
+      "border": "0px none",
+      "outline": "none 3px",
+      "background": "rgb(255, 255, 255)",
+      "paddingBlock": "18px",
+      "boxShadow": "rgba(26, 42, 92, 0.2) 0px 6px 20px -8px, rgba(26, 42, 92, 0.05) 0px 2p",
+      "height": 86,
+      "wdColour": "rgb(22, 163, 74)"
+    },
+    "unselectedCell": {
+      "paddingBlock": "12px",
+      "height": 74,
+      "boxShadow": "none",
+      "background": "rgba(0, 0, 0, 0)"
+    },
+    "listMinHeight": "0px",
+    "listHeight": 1066,
+    "listContent": 1066,
+    "curiosityTop": 10368,
+    "noteTop": 10478,
+    "todayDimmed": "0.5",
+    "todayAriaDisabled": "true",
+    "panel": {
+      "radius": "20px",
+      "overflow": "hidden",
+      "shadow": "rgba(26, 42, 92, 0.26) 0px 16px 44px -30px",
+      "bands": [
+        {
+          "cls": "sp-flow",
+          "borderTop": "0px rgb(71, 80, 107)",
+          "padding": "22px 30px",
+          "bg": "rgb(247, 248, 253)"
+        },
+        {
+          "cls": "sp-week",
+          "borderTop": "1px rgb(235, 238, 247)",
+          "padding": "20px 16px",
+          "bg": "rgb(255, 255, 255)"
+        },
+        {
+          "cls": "sp-agenda",
+          "borderTop": "1px rgb(235, 238, 247)",
+          "padding": "18px 16px",
+          "bg": "rgb(247, 248, 253)"
+        },
+        {
+          "cls": "sp-curiosity",
+          "borderTop": "1px rgb(235, 238, 247)",
+          "padding": "15px 18px",
+          "bg": "rgb(255, 255, 255)"
+        }
+      ]
+    },
+    "flowCols": "252px",
+    "arrowTransform": "matrix(0, 1, -1, 0, 0, 0)",
+    "stripRole": "group",
+    "stripLabel": "Select a day",
+    "agendaLive": "polite",
+    "overflow": 0,
+    "clock": "Wed Sep 09 2026",
+    "errors": []
+  },
+  "onLoad": {
+    "month": "September '26",
+    "weekdayUnder": "Wednesday",
+    "agendaHeading": "Wednesday, September 9",
+    "count": "9 events",
+    "dates": [
+      "6",
+      "7",
+      "8",
+      "9",
+      "10",
+      "11",
+      "12"
+    ],
+    "weekdays": [
+      "Sun",
+      "Mon",
+      "Tue",
+      "Wed",
+      "Thu",
+      "Fri",
+      "Sat"
+    ],
+    "selectedIndex": 3,
+    "selectedDate": "9",
+    "selectedLabel": "Wednesday, September 9, 2026, today, 9 events",
+    "dotCounts": [
+      5,
+      5,
+      5,
+      5,
+      5,
+      5,
+      5
+    ],
+    "eventNames": [
+      "Morning Skincare Routine",
+      "Hydration: Lifestyle Reminder",
+      "Hydrolysed Collagen Peptides",
+      "Sun habits: Lifestyle Reminder",
+      "Lutein and Zeaxanthin",
+      "Omega-3 Fatty Acids (EPA and DHA)",
+      "Eye care habits: Lifestyle Reminder",
+      "Evening Skincare Routine",
+      "Cooling Hydrogel Eye Mask"
+    ],
+    "eventTypes": [
+      "Morning Routine",
+      "Lifestyle",
+      "Supplement",
+      "Lifestyle",
+      "Supplement",
+      "Supplement",
+      "Lifestyle",
+      "Evening Routine",
+      "Treatment"
+    ],
+    "eventTimes": [
+      "7:00 AM",
+      "7:15 AM",
+      "7:30 AM",
+      "11:30 AM",
+      "12:30 PM",
+      "7:30 PM",
+      "8:30 PM",
+      "9:00 PM",
+      "9:00 PM"
+    ],
+    "selectedCell": {
+      "border": "0px none",
+      "outline": "none 3px",
+      "background": "rgb(255, 255, 255)",
+      "paddingBlock": "18px",
+      "boxShadow": "rgba(26, 42, 92, 0.2) 0px 6px 20px -8px, rgba(26, 42, 92, 0.05) 0px 2p",
+      "height": 93,
+      "wdColour": "rgb(22, 163, 74)"
+    },
+    "unselectedCell": {
+      "paddingBlock": "12px",
+      "height": 81,
+      "boxShadow": "none",
+      "background": "rgba(0, 0, 0, 0)"
+    },
+    "listMinHeight": "800px",
+    "listHeight": 800,
+    "listContent": 800,
+    "curiosityTop": 10290,
+    "noteTop": 10362,
+    "todayDimmed": "0.5",
+    "todayAriaDisabled": "true",
+    "panel": {
+      "radius": "26px",
+      "overflow": "hidden",
+      "shadow": "rgba(26, 42, 92, 0.26) 0px 16px 44px -30px",
+      "bands": [
+        {
+          "cls": "sp-flow",
+          "borderTop": "0px rgb(71, 80, 107)",
+          "padding": "22px 30px",
+          "bg": "rgb(247, 248, 253)"
+        },
+        {
+          "cls": "sp-week",
+          "borderTop": "1px rgb(235, 238, 247)",
+          "padding": "22px 26px 24px",
+          "bg": "rgb(255, 255, 255)"
+        },
+        {
+          "cls": "sp-agenda",
+          "borderTop": "1px rgb(235, 238, 247)",
+          "padding": "22px 30px 26px",
+          "bg": "rgb(247, 248, 253)"
+        },
+        {
+          "cls": "sp-curiosity",
+          "borderTop": "1px rgb(235, 238, 247)",
+          "padding": "17px 30px",
+          "bg": "rgb(255, 255, 255)"
+        }
+      ]
+    },
+    "flowCols": "320px 58px 320px 58px 320px",
+    "arrowTransform": "none",
+    "stripRole": "group",
+    "stripLabel": "Select a day",
+    "agendaLive": "polite",
+    "overflow": 0,
+    "clock": "Wed Sep 09 2026"
+  },
+  "perDay": [
+    {
+      "i": 0,
+      "wd": "Sun",
+      "date": "6",
+      "heading": "Sunday, September 6",
+      "count": "9 events",
+      "weekdayUnder": "Sunday",
+      "events": 9,
+      "lifestyle": 3,
+      "treatment": 1,
+      "listHeight": 800,
+      "listContent": 800,
+      "curiosityTop": 10290,
+      "noteTop": 10362,
+      "todayDimmed": "1",
+      "dots": 5,
+      "times": [
+        "7:00 AM",
+        "7:15 AM",
+        "7:30 AM",
+        "11:30 AM",
+        "12:30 PM",
+        "7:30 PM",
+        "9:00 PM",
+        "9:00 PM",
+        "10:00 PM"
+      ]
+    },
+    {
+      "i": 1,
+      "wd": "Mon",
+      "date": "7",
+      "heading": "Monday, September 7",
+      "count": "10 events",
+      "weekdayUnder": "Monday",
+      "events": 10,
+      "lifestyle": 5,
+      "treatment": 0,
+      "listHeight": 800,
+      "listContent": 800,
+      "curiosityTop": 10290,
+      "noteTop": 10362,
+      "todayDimmed": "1",
+      "dots": 5,
+      "times": [
+        "7:00 AM",
+        "7:15 AM",
+        "7:30 AM",
+        "11:30 AM",
+        "12:30 PM",
+        "12:30 PM",
+        "7:30 PM",
+        "8:30 PM",
+        "9:00 PM",
+        "10:00 PM"
+      ]
+    },
+    {
+      "i": 2,
+      "wd": "Tue",
+      "date": "8",
+      "heading": "Tuesday, September 8",
+      "count": "8 events",
+      "weekdayUnder": "Tuesday",
+      "events": 8,
+      "lifestyle": 2,
+      "treatment": 1,
+      "listHeight": 800,
+      "listContent": 800,
+      "curiosityTop": 10290,
+      "noteTop": 10362,
+      "todayDimmed": "1",
+      "dots": 5,
+      "times": [
+        "7:00 AM",
+        "7:15 AM",
+        "7:30 AM",
+        "12:30 PM",
+        "12:30 PM",
+        "7:30 PM",
+        "8:30 PM",
+        "9:00 PM"
+      ]
+    },
+    {
+      "i": 3,
+      "wd": "Wed",
+      "date": "9",
+      "heading": "Wednesday, September 9",
+      "count": "9 events",
+      "weekdayUnder": "Wednesday",
+      "events": 9,
+      "lifestyle": 3,
+      "treatment": 1,
+      "listHeight": 800,
+      "listContent": 800,
+      "curiosityTop": 10290,
+      "noteTop": 10362,
+      "todayDimmed": "0.5",
+      "dots": 5,
+      "times": [
+        "7:00 AM",
+        "7:15 AM",
+        "7:30 AM",
+        "11:30 AM",
+        "12:30 PM",
+        "7:30 PM",
+        "8:30 PM",
+        "9:00 PM",
+        "9:00 PM"
+      ]
+    },
+    {
+      "i": 4,
+      "wd": "Thu",
+      "date": "10",
+      "heading": "Thursday, September 10",
+      "count": "8 events",
+      "weekdayUnder": "Thursday",
+      "events": 8,
+      "lifestyle": 3,
+      "treatment": 0,
+      "listHeight": 800,
+      "listContent": 800,
+      "curiosityTop": 10290,
+      "noteTop": 10362,
+      "todayDimmed": "1",
+      "dots": 5,
+      "times": [
+        "7:00 AM",
+        "7:15 AM",
+        "7:30 AM",
+        "12:30 PM",
+        "12:30 PM",
+        "7:30 PM",
+        "9:00 PM",
+        "10:00 PM"
+      ]
+    },
+    {
+      "i": 5,
+      "wd": "Fri",
+      "date": "11",
+      "heading": "Friday, September 11",
+      "count": "11 events",
+      "weekdayUnder": "Friday",
+      "events": 11,
+      "lifestyle": 4,
+      "treatment": 2,
+      "listHeight": 800,
+      "listContent": 800,
+      "curiosityTop": 10290,
+      "noteTop": 10362,
+      "todayDimmed": "1",
+      "dots": 5,
+      "times": [
+        "7:00 AM",
+        "7:15 AM",
+        "7:30 AM",
+        "11:30 AM",
+        "12:30 PM",
+        "7:30 PM",
+        "8:30 PM",
+        "8:30 PM",
+        "9:00 PM",
+        "9:15 PM",
+        "10:00 PM"
+      ]
+    },
+    {
+      "i": 6,
+      "wd": "Sat",
+      "date": "12",
+      "heading": "Saturday, September 12",
+      "count": "8 events",
+      "weekdayUnder": "Saturday",
+      "events": 8,
+      "lifestyle": 2,
+      "treatment": 1,
+      "listHeight": 800,
+      "listContent": 800,
+      "curiosityTop": 10290,
+      "noteTop": 10362,
+      "todayDimmed": "1",
+      "dots": 5,
+      "times": [
+        "7:00 AM",
+        "7:15 AM",
+        "7:30 AM",
+        "12:30 PM",
+        "7:30 PM",
+        "9:00 PM",
+        "9:15 PM",
+        "10:00 PM"
+      ]
+    }
+  ],
+  "afterTodayPress": {
+    "month": "September '26",
+    "weekdayUnder": "Wednesday",
+    "agendaHeading": "Wednesday, September 9",
+    "count": "9 events",
+    "dates": [
+      "6",
+      "7",
+      "8",
+      "9",
+      "10",
+      "11",
+      "12"
+    ],
+    "weekdays": [
+      "Sun",
+      "Mon",
+      "Tue",
+      "Wed",
+      "Thu",
+      "Fri",
+      "Sat"
+    ],
+    "selectedIndex": 3,
+    "selectedDate": "9",
+    "selectedLabel": "Wednesday, September 9, 2026, today, 9 events",
+    "dotCounts": [
+      5,
+      5,
+      5,
+      5,
+      5,
+      5,
+      5
+    ],
+    "eventNames": [
+      "Morning Skincare Routine",
+      "Hydration: Lifestyle Reminder",
+      "Hydrolysed Collagen Peptides",
+      "Sun habits: Lifestyle Reminder",
+      "Lutein and Zeaxanthin",
+      "Omega-3 Fatty Acids (EPA and DHA)",
+      "Eye care habits: Lifestyle Reminder",
+      "Evening Skincare Routine",
+      "Cooling Hydrogel Eye Mask"
+    ],
+    "eventTypes": [
+      "Morning Routine",
+      "Lifestyle",
+      "Supplement",
+      "Lifestyle",
+      "Supplement",
+      "Supplement",
+      "Lifestyle",
+      "Evening Routine",
+      "Treatment"
+    ],
+    "eventTimes": [
+      "7:00 AM",
+      "7:15 AM",
+      "7:30 AM",
+      "11:30 AM",
+      "12:30 PM",
+      "7:30 PM",
+      "8:30 PM",
+      "9:00 PM",
+      "9:00 PM"
+    ],
+    "selectedCell": {
+      "border": "0px none",
+      "outline": "none 3px",
+      "background": "rgb(255, 255, 255)",
+      "paddingBlock": "18px",
+      "boxShadow": "rgba(26, 42, 92, 0.2) 0px 6px 20px -8px, rgba(26, 42, 92, 0.05) 0px 2p",
+      "height": 93,
+      "wdColour": "rgb(22, 163, 74)"
+    },
+    "unselectedCell": {
+      "paddingBlock": "12px",
+      "height": 81,
+      "boxShadow": "none",
+      "background": "rgba(0, 0, 0, 0)"
+    },
+    "listMinHeight": "800px",
+    "listHeight": 800,
+    "listContent": 800,
+    "curiosityTop": 10290,
+    "noteTop": 10362,
+    "todayDimmed": "0.5",
+    "todayAriaDisabled": "true",
+    "panel": {
+      "radius": "26px",
+      "overflow": "hidden",
+      "shadow": "rgba(26, 42, 92, 0.26) 0px 16px 44px -30px",
+      "bands": [
+        {
+          "cls": "sp-flow",
+          "borderTop": "0px rgb(71, 80, 107)",
+          "padding": "22px 30px",
+          "bg": "rgb(247, 248, 253)"
+        },
+        {
+          "cls": "sp-week",
+          "borderTop": "1px rgb(235, 238, 247)",
+          "padding": "22px 26px 24px",
+          "bg": "rgb(255, 255, 255)"
+        },
+        {
+          "cls": "sp-agenda",
+          "borderTop": "1px rgb(235, 238, 247)",
+          "padding": "22px 30px 26px",
+          "bg": "rgb(247, 248, 253)"
+        },
+        {
+          "cls": "sp-curiosity",
+          "borderTop": "1px rgb(235, 238, 247)",
+          "padding": "17px 30px",
+          "bg": "rgb(255, 255, 255)"
+        }
+      ]
+    },
+    "flowCols": "320px 58px 320px 58px 320px",
+    "arrowTransform": "none",
+    "stripRole": "group",
+    "stripLabel": "Select a day",
+    "agendaLive": "polite",
+    "overflow": 0,
+    "clock": "Wed Sep 09 2026"
+  },
+  "forward": [
+    {
+      "month": "September '26",
+      "dates": "13,14,15,16,17,18,19",
+      "selected": "13",
+      "heading": "Sunday, September 13",
+      "todayDimmed": "1"
+    },
+    {
+      "month": "September '26",
+      "dates": "20,21,22,23,24,25,26",
+      "selected": "20",
+      "heading": "Sunday, September 20",
+      "todayDimmed": "1"
+    },
+    {
+      "month": "September – October '26",
+      "dates": "27,28,29,30,1,2,3",
+      "selected": "27",
+      "heading": "Sunday, September 27",
+      "todayDimmed": "1"
+    },
+    {
+      "month": "October '26",
+      "dates": "4,5,6,7,8,9,10",
+      "selected": "4",
+      "heading": "Sunday, October 4",
+      "todayDimmed": "1"
+    },
+    {
+      "month": "October '26",
+      "dates": "11,12,13,14,15,16,17",
+      "selected": "11",
+      "heading": "Sunday, October 11",
+      "todayDimmed": "1"
+    }
+  ],
+  "todayFromForward": {
+    "month": "September '26",
+    "weekdayUnder": "Wednesday",
+    "agendaHeading": "Wednesday, September 9",
+    "count": "9 events",
+    "dates": [
+      "6",
+      "7",
+      "8",
+      "9",
+      "10",
+      "11",
+      "12"
+    ],
+    "weekdays": [
+      "Sun",
+      "Mon",
+      "Tue",
+      "Wed",
+      "Thu",
+      "Fri",
+      "Sat"
+    ],
+    "selectedIndex": 3,
+    "selectedDate": "9",
+    "selectedLabel": "Wednesday, September 9, 2026, today, 9 events",
+    "dotCounts": [
+      5,
+      5,
+      5,
+      5,
+      5,
+      5,
+      5
+    ],
+    "eventNames": [
+      "Morning Skincare Routine",
+      "Hydration: Lifestyle Reminder",
+      "Hydrolysed Collagen Peptides",
+      "Sun habits: Lifestyle Reminder",
+      "Lutein and Zeaxanthin",
+      "Omega-3 Fatty Acids (EPA and DHA)",
+      "Eye care habits: Lifestyle Reminder",
+      "Evening Skincare Routine",
+      "Cooling Hydrogel Eye Mask"
+    ],
+    "eventTypes": [
+      "Morning Routine",
+      "Lifestyle",
+      "Supplement",
+      "Lifestyle",
+      "Supplement",
+      "Supplement",
+      "Lifestyle",
+      "Evening Routine",
+      "Treatment"
+    ],
+    "eventTimes": [
+      "7:00 AM",
+      "7:15 AM",
+      "7:30 AM",
+      "11:30 AM",
+      "12:30 PM",
+      "7:30 PM",
+      "8:30 PM",
+      "9:00 PM",
+      "9:00 PM"
+    ],
+    "selectedCell": {
+      "border": "0px none",
+      "outline": "none 3px",
+      "background": "rgb(255, 255, 255)",
+      "paddingBlock": "18px",
+      "boxShadow": "rgba(26, 42, 92, 0.2) 0px 6px 20px -8px, rgba(26, 42, 92, 0.05) 0px 2p",
+      "height": 93,
+      "wdColour": "rgb(22, 163, 74)"
+    },
+    "unselectedCell": {
+      "paddingBlock": "12px",
+      "height": 81,
+      "boxShadow": "none",
+      "background": "rgba(0, 0, 0, 0)"
+    },
+    "listMinHeight": "800px",
+    "listHeight": 800,
+    "listContent": 800,
+    "curiosityTop": 10290,
+    "noteTop": 10362,
+    "todayDimmed": "0.5",
+    "todayAriaDisabled": "true",
+    "panel": {
+      "radius": "26px",
+      "overflow": "hidden",
+      "shadow": "rgba(26, 42, 92, 0.26) 0px 16px 44px -30px",
+      "bands": [
+        {
+          "cls": "sp-flow",
+          "borderTop": "0px rgb(71, 80, 107)",
+          "padding": "22px 30px",
+          "bg": "rgb(247, 248, 253)"
+        },
+        {
+          "cls": "sp-week",
+          "borderTop": "1px rgb(235, 238, 247)",
+          "padding": "22px 26px 24px",
+          "bg": "rgb(255, 255, 255)"
+        },
+        {
+          "cls": "sp-agenda",
+          "borderTop": "1px rgb(235, 238, 247)",
+          "padding": "22px 30px 26px",
+          "bg": "rgb(247, 248, 253)"
+        },
+        {
+          "cls": "sp-curiosity",
+          "borderTop": "1px rgb(235, 238, 247)",
+          "padding": "17px 30px",
+          "bg": "rgb(255, 255, 255)"
+        }
+      ]
+    },
+    "flowCols": "320px 58px 320px 58px 320px",
+    "arrowTransform": "none",
+    "stripRole": "group",
+    "stripLabel": "Select a day",
+    "agendaLive": "polite",
+    "overflow": 0,
+    "clock": "Wed Sep 09 2026"
+  },
+  "back": [
+    {
+      "month": "August – September '26",
+      "dates": "30,31,1,2,3,4,5",
+      "selected": "30",
+      "todayDimmed": "1"
+    },
+    {
+      "month": "August '26",
+      "dates": "23,24,25,26,27,28,29",
+      "selected": "23",
+      "todayDimmed": "1"
+    },
+    {
+      "month": "August '26",
+      "dates": "16,17,18,19,20,21,22",
+      "selected": "16",
+      "todayDimmed": "1"
+    }
+  ],
+  "todayFromBack": {
+    "month": "September '26",
+    "weekdayUnder": "Wednesday",
+    "agendaHeading": "Wednesday, September 9",
+    "count": "9 events",
+    "dates": [
+      "6",
+      "7",
+      "8",
+      "9",
+      "10",
+      "11",
+      "12"
+    ],
+    "weekdays": [
+      "Sun",
+      "Mon",
+      "Tue",
+      "Wed",
+      "Thu",
+      "Fri",
+      "Sat"
+    ],
+    "selectedIndex": 3,
+    "selectedDate": "9",
+    "selectedLabel": "Wednesday, September 9, 2026, today, 9 events",
+    "dotCounts": [
+      5,
+      5,
+      5,
+      5,
+      5,
+      5,
+      5
+    ],
+    "eventNames": [
+      "Morning Skincare Routine",
+      "Hydration: Lifestyle Reminder",
+      "Hydrolysed Collagen Peptides",
+      "Sun habits: Lifestyle Reminder",
+      "Lutein and Zeaxanthin",
+      "Omega-3 Fatty Acids (EPA and DHA)",
+      "Eye care habits: Lifestyle Reminder",
+      "Evening Skincare Routine",
+      "Cooling Hydrogel Eye Mask"
+    ],
+    "eventTypes": [
+      "Morning Routine",
+      "Lifestyle",
+      "Supplement",
+      "Lifestyle",
+      "Supplement",
+      "Supplement",
+      "Lifestyle",
+      "Evening Routine",
+      "Treatment"
+    ],
+    "eventTimes": [
+      "7:00 AM",
+      "7:15 AM",
+      "7:30 AM",
+      "11:30 AM",
+      "12:30 PM",
+      "7:30 PM",
+      "8:30 PM",
+      "9:00 PM",
+      "9:00 PM"
+    ],
+    "selectedCell": {
+      "border": "0px none",
+      "outline": "none 3px",
+      "background": "rgb(255, 255, 255)",
+      "paddingBlock": "18px",
+      "boxShadow": "rgba(26, 42, 92, 0.2) 0px 6px 20px -8px, rgba(26, 42, 92, 0.05) 0px 2p",
+      "height": 93,
+      "wdColour": "rgb(22, 163, 74)"
+    },
+    "unselectedCell": {
+      "paddingBlock": "12px",
+      "height": 81,
+      "boxShadow": "none",
+      "background": "rgba(0, 0, 0, 0)"
+    },
+    "listMinHeight": "800px",
+    "listHeight": 800,
+    "listContent": 800,
+    "curiosityTop": 10290,
+    "noteTop": 10362,
+    "todayDimmed": "0.5",
+    "todayAriaDisabled": "true",
+    "panel": {
+      "radius": "26px",
+      "overflow": "hidden",
+      "shadow": "rgba(26, 42, 92, 0.26) 0px 16px 44px -30px",
+      "bands": [
+        {
+          "cls": "sp-flow",
+          "borderTop": "0px rgb(71, 80, 107)",
+          "padding": "22px 30px",
+          "bg": "rgb(247, 248, 253)"
+        },
+        {
+          "cls": "sp-week",
+          "borderTop": "1px rgb(235, 238, 247)",
+          "padding": "22px 26px 24px",
+          "bg": "rgb(255, 255, 255)"
+        },
+        {
+          "cls": "sp-agenda",
+          "borderTop": "1px rgb(235, 238, 247)",
+          "padding": "22px 30px 26px",
+          "bg": "rgb(247, 248, 253)"
+        },
+        {
+          "cls": "sp-curiosity",
+          "borderTop": "1px rgb(235, 238, 247)",
+          "padding": "17px 30px",
+          "bg": "rgb(255, 255, 255)"
+        }
+      ]
+    },
+    "flowCols": "320px 58px 320px 58px 320px",
+    "arrowTransform": "none",
+    "stripRole": "group",
+    "stripLabel": "Select a day",
+    "agendaLive": "polite",
+    "overflow": 0,
+    "clock": "Wed Sep 09 2026"
+  },
+  "keyboard": [
+    {
+      "step": "focus day 0",
+      "cls": "sp-day",
+      "text": "Sun6",
+      "ring": "3px none"
+    },
+    {
+      "step": "ArrowRight",
+      "cls": "sp-day",
+      "text": "Mon7",
+      "ring": "2px solid"
+    },
+    {
+      "step": "ArrowRight",
+      "cls": "sp-day",
+      "text": "Tue8",
+      "ring": "2px solid"
+    },
+    {
+      "step": "End",
+      "cls": "sp-day",
+      "text": "Sat12",
+      "ring": "2px solid"
+    },
+    {
+      "step": "Home",
+      "cls": "sp-day",
+      "text": "Sun6",
+      "ring": "2px solid"
+    },
+    {
+      "step": "Enter on day 2",
+      "selected": "8",
+      "heading": "Tuesday, September 8"
+    },
+    {
+      "step": "focus prev",
+      "cls": "sp-nav sp-nav--prev",
+      "text": "",
+      "ring": "2px solid"
+    },
+    {
+      "step": "Tab",
+      "cls": "sp-nav",
+      "text": "",
+      "ring": "2px solid"
+    },
+    {
+      "step": "Tab",
+      "cls": "sp-today",
+      "text": "Today",
+      "ring": "2px solid"
+    },
+    {
+      "step": "Enter on Today",
+      "selected": "9",
+      "dimmed": "0.5"
+    }
+  ],
+  "errors1440": [],
+  "hero": {
+    "pinSpacers": 1,
+    "heroPosition": "fixed",
+    "devices": 0
+  },
+  "footer": {
+    "footerFound": true,
+    "childPosition": "fixed",
+    "footerTop": 20,
+    "visible": true
+  }
+}
