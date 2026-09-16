@@ -1,5 +1,5 @@
 import type { CSSProperties } from 'react'
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { RefObject } from 'react'
 import { useMotionValueEvent, useReducedMotion, useScroll, useSpring } from 'framer-motion'
 
@@ -229,8 +229,10 @@ const STAGE_COUNT = CARD_GROUPS.length + 2
  * buying real distance fixed that.
  *
  * IT THEN OVERSHOT. 90svh a stage measured 7 to 11 wheel notches per stage
- * at 1440 — a 4049px pin for five states. These are half of those values,
- * which lands each stage at 3 to 5 notches and the whole pin at 2025px.
+ * at 1440 — a 4049px pin for five states. Halving that (45/38/30) then
+ * UNDERSHOT on phones: 30svh is ~280px a stage at 430, one short swipe, so
+ * the sequence read as already over. These are the correction — a stage is
+ * half a viewport or more at every width.
  *
  * READ BY BOTH VARIANTS. `ScrollHero` only ever renders at ≥1025px so it
  * only ever uses the first of these, and `SimpleHero` — everything below —
@@ -238,11 +240,11 @@ const STAGE_COUNT = CARD_GROUPS.length + 2
  * literals inside SimpleHero, which is how the two drifted apart.
  */
 /** ≥1025px. */
-const STAGE_BUDGET_VH = 0.45
+const STAGE_BUDGET_VH = 0.55
 /** 769–1024px. */
-const STAGE_BUDGET_VH_TAB = 0.38
-/** ≤768px, where a long freeze costs the most. */
-const STAGE_BUDGET_VH_NARROW = 0.3
+const STAGE_BUDGET_VH_TAB = 0.5
+/** ≤768px. */
+const STAGE_BUDGET_VH_NARROW = 0.45
 
 /**
  * One card set at a time — stage 0 is the clean intro, STAGE_COUNT-1 the close.
@@ -267,8 +269,49 @@ const STAGE_BUDGET_VH_NARROW = 0.3
  * mid-stage to read it is the entire point of the budget.
  */
 function stageFromProgress(p: number) {
+  // A trigger that has not measured yet reports NaN; that is the headline, not the close.
+  if (!Number.isFinite(p) || p <= 0) return 0
   const band = Math.floor(p * STAGE_COUNT)
   return Math.min(STAGE_COUNT - 1, Math.max(0, band))
+}
+
+/**
+ * The pin for both hero variants.
+ *
+ * THE STAGE IS READ FROM THE TRIGGER, NEVER FROM A TWEEN. This used to be
+ * `gsap.to({ p: 0 }, { p: 1, scrollTrigger: { scrub } })` with the stage
+ * derived from `p`. That tween is a timed animation the trigger is merely
+ * supposed to be holding — if the trigger ever fails to take it over, GSAP
+ * plays it over its default 0.5s and the hero lands on the closing stage with
+ * no scroll at all. `ScrollTrigger.create` has no timeline to run, so the only
+ * input left is the real scroll position.
+ *
+ * `onRefresh` covers the two ways the page can already be past the start
+ * when the trigger is built: a load that lands mid-page (a hash, a browser
+ * restore that beat the reset in main.tsx) and a remount across the 1025
+ * breakpoint. Both used to show stage 0 until the next scroll event.
+ */
+function createHeroPin(
+  ScrollTrigger: typeof import('gsap/ScrollTrigger').ScrollTrigger,
+  el: HTMLElement,
+  perStage: number,
+  setStage: (next: number) => void,
+) {
+  const sync = (self: { progress: number }) => setStage(stageFromProgress(self.progress))
+  const st = ScrollTrigger.create({
+    trigger: el,
+    start: 'top top',
+    /* A function so every refresh re-reads the small viewport. */
+    end: () => '+=' + Math.round(STAGE_COUNT * perStage * readSvh()),
+    pin: true,
+    pinSpacing: true,
+    anticipatePin: 1,
+    invalidateOnRefresh: true,
+    onUpdate: sync,
+    onRefresh: sync,
+  })
+  sync(st)
+  return st
 }
 
 /**
@@ -370,11 +413,11 @@ function ScrollHero() {
    * scale. ScrollTrigger's `end: '+=' + n` states the budget directly, in
    * viewport units, and recomputes it on resize.
    *
-   * WHY A PROXY OBJECT
-   * The stages are React state, so there is nothing for GSAP to tween. It
-   * tweens `progress.p` from 0 to 1 instead and the component reads it — which
-   * is what lets `scrub: 0.5` apply its smoothing to the value the stage is
-   * derived FROM. A bare `ScrollTrigger.create` has no `scrub` to give.
+   * NO TWEEN, NO SCRUB
+   * The stages are React state, read straight off the trigger's progress in
+   * `createHeroPin`. There used to be a proxy tween with `scrub: 0.5` here;
+   * see that function for why it was removed. Stages are held bands with
+   * their own CSS crossfade, so scrub smoothing added lag and nothing else.
    *
    * SCROLLING
    * The page scrolls NATIVELY. ScrollTrigger listens to the native `scroll`
@@ -404,7 +447,7 @@ function ScrollHero() {
     let disposed = false
     let mm: ReturnType<typeof import('gsap').gsap.matchMedia> | undefined
 
-    void import('@/lib/gsap').then(({ gsap }) => {
+    void import('@/lib/gsap').then(({ gsap, ScrollTrigger }) => {
       if (disposed) return
       mm = gsap.matchMedia()
 
@@ -430,38 +473,14 @@ function ScrollHero() {
             return
           }
 
-          /* The three-tier budget: 45svh per stage at desktop, 38 at tablet,
-             30 on a phone. `ScrollHero` only mounts at ≥1025px, so in practice
+          /* The three-tier budget: 55svh per stage at desktop, 50 at tablet,
+             45 on a phone. `ScrollHero` only mounts at ≥1025px, so in practice
              this always resolves to the desktop tier — the other two branches
              are what `SimpleHero` uses. */
           const perStage = narrow ? STAGE_BUDGET_VH_NARROW : tab ? STAGE_BUDGET_VH_TAB : STAGE_BUDGET_VH
-          const progress = { p: 0 }
+          const st = createHeroPin(ScrollTrigger, el, perStage, setStage)
 
-          const tween = gsap.to(progress, {
-            p: 1,
-            ease: 'none',
-            scrollTrigger: {
-              trigger: el,
-              start: 'top top',
-              /* A function so `invalidateOnRefresh` can re-read the viewport
-                 on resize instead of freezing the first measurement. */
-              end: () => '+=' + Math.round(STAGE_COUNT * perStage * readSvh()),
-              pin: true,
-              pinSpacing: true,
-              scrub: 0.5,
-              anticipatePin: 1,
-              invalidateOnRefresh: true,
-            },
-            onUpdate: () => {
-              const next = stageFromProgress(progress.p)
-              setStage((prev) => (prev === next ? prev : next))
-            },
-          })
-
-          return () => {
-            tween.scrollTrigger?.kill()
-            tween.kill()
-          }
+          return () => st.kill()
         },
       )
     })
@@ -600,7 +619,7 @@ function ScrollHero() {
               <Button href="#download" size="lg" className="hero-cta">
                 {HERO.primary}
               </Button>
-              <Button href="#explore" variant="secondary" size="lg" className="hero-cta explore-wipe">
+              <Button href="#how-it-works" variant="secondary" size="lg" className="hero-cta explore-wipe">
                 {HERO.secondary}
               </Button>
             </div>
@@ -838,7 +857,7 @@ export function TabletHero() {
               <Button href="#download" size="md">
                 {HERO.primary}
               </Button>
-              <Button href="#explore" variant="secondary" size="md" className="explore-wipe">
+              <Button href="#how-it-works" variant="secondary" size="md" className="explore-wipe">
                 {HERO.secondary}
               </Button>
             </div>
@@ -1261,7 +1280,7 @@ function HeroCtas() {
       <Button href="#download" size="lg" className="hero-cta">
         {HERO.primary}
       </Button>
-      <Button href="#download" variant="secondary" size="lg" className="hero-cta explore-wipe">
+      <Button href="#how-it-works" variant="secondary" size="lg" className="hero-cta explore-wipe">
         {HERO.secondary}
       </Button>
     </div>
@@ -1284,7 +1303,7 @@ function HeroCtas() {
  * is a fixed 1840px canvas with ~30 absolute positions and must stay
  * pixel-identical, while this one is a fluid layout. What they now share is the
  * behaviour — the same stage function, the same svh budget rule, the same
- * reversible scrub — rather than the same markup.
+ * `createHeroPin` — rather than the same markup.
  *
  * THE STAGE STATES ARE OVERLAID, NOT STACKED
  * Intro and closing occupy the same box and cross-fade; only the device is
@@ -1292,18 +1311,28 @@ function HeroCtas() {
  * stage, so the pin has a stable height and the page length does not jump
  * mid-sequence.
  */
+/** "My Skincare Plan", the longest label, is ~7.5em; at 0.1 x --dw it fits the
+    screen's ~0.87 x --dw with room either side. */
+const HERO_LABEL_SIZE = 'clamp(12px, calc(var(--dw) * 0.1), 22px)'
+
+/** A flanking card is 0.9 x --dw, floored at 10.5rem. Its 20px padding is the
+    same as every sibling's; what failed at 1024x768 was the WIDTH — --dw came
+    out at 164px there, leaving a 105px content box for the 121px word
+    "Consultation", which ran through the right padding to 4px off the edge.
+    10.5rem gives the widest title word its full padding at every tier. */
+const HERO_CARD_W = 'max(calc(var(--dw) * 0.9), 10.5rem)'
+
 function SimpleHero() {
   const trackRef = useRef<HTMLElement>(null)
   const [stage, setStage] = useState(0)
-  const firstGroup = useMemo(() => CARD_GROUPS[0], [])
 
   /**
    * The pin, at every width this component covers — including 375.
    *
    * Same construction as the desktop canvas: `gsap.matchMedia` with no gap
    * between conditions, an `end` FUNCTION so `invalidateOnRefresh` re-reads the
-   * viewport instead of freezing the first measurement, and `scrub` so the
-   * sequence is reversible on the way back up rather than one-shot.
+   * viewport instead of freezing the first measurement, and the stage read
+   * from live progress so the sequence reverses on the way back up.
    *
    * `useLayoutEffect`, not `useEffect`: GSAP's pin moves this section into a
    * `.pin-spacer` it creates, and a passive cleanup can run after React has
@@ -1321,7 +1350,7 @@ function SimpleHero() {
     let disposed = false
     let mm: ReturnType<typeof import('gsap').gsap.matchMedia> | undefined
 
-    void import('@/lib/gsap').then(({ gsap }) => {
+    void import('@/lib/gsap').then(({ gsap, ScrollTrigger }) => {
       if (disposed) return
       mm = gsap.matchMedia()
 
@@ -1345,31 +1374,9 @@ function SimpleHero() {
              bare `0.55 : 0.7` literals, so changing the budget at the top of
              the file silently left every width below 1025px untouched. */
           const perStage = c.phone ? STAGE_BUDGET_VH_NARROW : STAGE_BUDGET_VH_TAB
-          const progress = { p: 0 }
+          const st = createHeroPin(ScrollTrigger, el, perStage, setStage)
 
-          const tween = gsap.to(progress, {
-            p: 1,
-            ease: 'none',
-            scrollTrigger: {
-              trigger: el,
-              start: 'top top',
-              end: () => '+=' + Math.round(STAGE_COUNT * perStage * readSvh()),
-              pin: true,
-              pinSpacing: true,
-              scrub: 0.5,
-              anticipatePin: 1,
-              invalidateOnRefresh: true,
-            },
-            onUpdate: () => {
-              const next = stageFromProgress(progress.p)
-              setStage((prev) => (prev === next ? prev : next))
-            },
-          })
-
-          return () => {
-            tween.scrollTrigger?.kill()
-            tween.kill()
-          }
+          return () => st.kill()
         },
       )
     })
@@ -1386,7 +1393,6 @@ function SimpleHero() {
   const opIntro = stage === 0 ? 1 : 0
   const opFinal = stage === 4 ? 1 : 0
   const opBrand = stage === 0 || stage === 4 ? 1 : 0
-  const cardsShowing = stage >= 1 && stage <= 3
   const fade = 'opacity 0.4s ease, transform 0.5s cubic-bezier(0.16,1,0.3,1)'
 
   return (
@@ -1442,6 +1448,25 @@ function SimpleHero() {
         @media (max-width: 768px)  { #top .hero-dev { --dw: min(calc(var(--dw-desktop) * 0.62), 78vw); } }
         /* <=600: 54% */
         @media (max-width: 600px)  { #top .hero-dev { --dw: min(calc(var(--dw-desktop) * 0.54), 78vw); } }
+
+        /* HEIGHT-AWARE SIZING, where container units exist. The tiers above
+           stay as the fallback and are what Safari < 16 gets.
+
+           The device slot is a size container, so 1cqh is 1% of the height
+           left under the buttons. The composition from the film's top edge to
+           the device's bottom is 2.414 x --dw, plus the stage-0 nudge of 4%
+           of that, so 39cqh is the largest device that fits the slot whole.
+           That is what puts the phone inside the first viewport.
+
+           Each tier is ALSO held to a width share (46vw with no cards, 32vw
+           beside two cards, which is what keeps card + device + card inside
+           the viewport: the pair spans 2.92 x --dw) and floored, so a short
+           viewport gets a phone cut at the bottom rather than a thumbnail. */
+        @supports (height: 1cqh) {
+          @media (max-width: 1024px) { #top .hero-dev { --dw: max(min(16vw, 164px), min(32vw, 39cqh, 300px)); } }
+          @media (max-width: 768px)  { #top .hero-dev { --dw: max(min(22vw, 150px), min(32vw, 39cqh, 260px)); } }
+          @media (max-width: 600px)  { #top .hero-dev { --dw: max(min(34vw, 132px), min(46vw, 39cqh, 220px)); } }
+        }
       `}</style>
 
       {/* NORMAL FLOW, in stacking order: copy slot, then device slot. The two
@@ -1450,7 +1475,9 @@ function SimpleHero() {
           relationship was whatever the viewport height happened to make it.
           At 600 that came out as 1px. Now the copy takes the height it needs
           and the device gets what is left, so the gap cannot close. */}
-      <div className="relative flex h-[100svh] min-h-[600px] w-full flex-col">
+      {/* `min-h-[520px]`, not 600: at 320x568 the 600 floor made the pinned
+          section 32px taller than the viewport it is pinned in. */}
+      <div className="relative flex h-[100svh] min-h-[520px] w-full flex-col">
         {/* ── the copy slot. Its height comes from the intro, which is always
              in flow; the close is overlaid on top of it, so the slot — and
              with it the section — is exactly as tall at stage 4 as at stage 0
@@ -1509,8 +1536,10 @@ function SimpleHero() {
           </div>
         </div>
 
-        {/* ── the device slot: what is left after the copy, with 32px of hard
-             clearance above it.
+        {/* ── the device slot: what is left after the copy, with 16px of hard
+             clearance above it. It is a SIZE CONTAINER so `--dw` can be sized
+             from the height it has (see the `cqh` tiers above). Nothing inside
+             is `position: fixed`, so the containment has nothing to capture.
 
              `overflow-hidden` here is what keeps the film off the buttons.
              The film deliberately extends 38.2% of `--dw` ABOVE the device
@@ -1519,7 +1548,7 @@ function SimpleHero() {
              viewport too short to hold it, it is cut at the slot edge rather
              than riding up into the CTA row. The SECTION still owns the
              horizontal clip. ────────────────────────────────────────────── */}
-        <div className="relative mt-8 min-h-0 flex-1 overflow-hidden">
+        <div className="relative mt-4 min-h-0 flex-1 overflow-hidden [container-type:size]">
           {/* ── the device: present at every stage, and the thing the label
              lives inside. Lifted once the intro clears, so stage 0 reads as
              "text above, phone entering" and the card stages read as "phone
@@ -1543,7 +1572,9 @@ function SimpleHero() {
           <div
             className="absolute inset-x-0 top-0 flex justify-center"
             style={{
-              transform: `translateY(${stage === 0 ? 12 : 0}%)`,
+              /* 4%, not 12%: the larger nudge was most of the empty band
+                 between the buttons and the phone at 430. */
+              transform: `translateY(${stage === 0 ? 4 : 0}%)`,
               transition: 'transform 0.6s cubic-bezier(0.16,1,0.3,1)',
             }}
           >
@@ -1594,8 +1625,9 @@ function SimpleHero() {
                 positioned box and cross-faded, so the label never reflows and
                 the sequence reverses cleanly on scroll up.
 
-                Sized fluidly rather than the desktop's fixed 26px, which
-                overruns a 240px-wide screen. */}
+                Sized off `--dw` rather than the viewport: a vw size ran the
+                longest label past the screen edge whenever the device tier
+                was narrower than the viewport share assumed. */}
               <div
                 className="pointer-events-none absolute inset-x-0 z-10 flex justify-center"
                 style={{ top: '13%' }}
@@ -1605,7 +1637,7 @@ function SimpleHero() {
                   label="SkinTrix360"
                   duration={0.4}
                   easing="ease"
-                  fontSize="clamp(13px, 4.4vw, 22px)"
+                  fontSize={HERO_LABEL_SIZE}
                 />
                 {GROUP_LABELS.map((label, i) => (
                   <BrandLabel
@@ -1614,7 +1646,7 @@ function SimpleHero() {
                     label={label}
                     duration={0.2}
                     easing="linear"
-                    fontSize="clamp(13px, 4.4vw, 22px)"
+                    fontSize={HERO_LABEL_SIZE}
                   />
                 ))}
               </div>
@@ -1628,30 +1660,40 @@ function SimpleHero() {
                 ~150px (its title is 22px), so two cards plus a gap either side
                 of a device `D` needs `V >= 316 + D`. At 375 that allows
                 `D <= 59px`, which is not a phone. No connector lines here at
-                any width, as agreed. */}
-              <div
-                className="pointer-events-none absolute inset-0 hidden min-[601px]:block"
-                style={{
-                  opacity: cardsShowing ? 1 : 0,
-                  transition: 'opacity 0.35s ease',
-                }}
-              >
-                {[0, 1].map((i) => (
-                  <div
-                    key={firstGroup[i].title}
-                    className="pointer-events-auto absolute"
-                    style={{
-                      width: 'calc(var(--dw) * 0.9)',
-                      left: i === 0 ? 'calc(var(--dw) * -0.96)' : 'calc(var(--dw) * 1.06)',
-                      top: '24%',
-                      transform: `translateY(${cardsShowing ? 0 : 12}px)`,
-                      transition: fade,
-                    }}
-                  >
-                    <GlassCard card={firstGroup[i]} floatDuration={FLOAT_DURATIONS[i]} />
-                  </div>
-                ))}
-              </div>
+                any width, as agreed.
+
+                One pair PER STAGE, the first two cards of that stage's group,
+                so the cards agree with the label above them. This used to
+                render group 1 at every stage, which put "Skin Type" beside
+                "My Skincare Plan". */}
+              {CARD_GROUPS.map((group, g) => (
+                <div
+                  key={g}
+                  className="pointer-events-none absolute inset-0 hidden min-[601px]:block"
+                  style={{
+                    opacity: op[g],
+                    transition: 'opacity 0.35s ease',
+                  }}
+                >
+                  {[0, 1].map((i) => (
+                    <div
+                      key={group[i].title}
+                      className={cn('absolute', op[g] ? 'pointer-events-auto' : 'pointer-events-none')}
+                      style={{
+                        width: HERO_CARD_W,
+                        /* The left card's right edge stays 0.06 x --dw off the
+                           device whatever width the floor gives it. */
+                        left: i === 0 ? `calc(-1 * ${HERO_CARD_W} - var(--dw) * 0.06)` : 'calc(var(--dw) * 1.06)',
+                        top: '24%',
+                        transform: `translateY(${op[g] ? 0 : 12}px)`,
+                        transition: fade,
+                      }}
+                    >
+                      <GlassCard card={group[i]} floatDuration={FLOAT_DURATIONS[i]} />
+                    </div>
+                  ))}
+                </div>
+              ))}
             </div>
           </div>
         </div>

@@ -1,5 +1,6 @@
 import { useRef } from 'react'
 import { m, useReducedMotion, useScroll, useSpring, useTransform } from 'framer-motion'
+import type { MotionStyle } from 'framer-motion'
 
 import { Reveal } from '@/components/ui/Reveal'
 import { WHAT } from '@/lib/site'
@@ -31,10 +32,26 @@ import { useTextReveal } from '@/hooks/useTextReveal'
  *
  * `y` is the reliable axis; `x` drifts a little as the side crop changes, so
  * keep points away from the edge of the face when moving them.
+ *
+ * ≤768px IS THE EXCEPTION. There the photo sits in a 4:3 box (3:2 at ≤480),
+ * WIDER than tall, so the crop flips: the full width shows and the top and
+ * bottom are trimmed around `object-position: center 30%`. `x`/`y` no longer
+ * hold, so `m` carries the same two landmarks re-expressed for those boxes.
+ * They are the points the pins already hit on the old 4:5 mobile crop — in
+ * source-image fractions, Texture (0.367, 0.366) and Hydration (0.447, 0.586):
+ *
+ *   x% = sx                                  (no side crop)
+ *   y% = sy * a - (a - 1) * 0.30 - 0.8       (a = box width / height)
+ *
+ * The -0.8 is the image's parallax overscan there: it is 104% of the box tall
+ * and lifted 2%, which moves the crop up by 0.8% of the box.
+ *
+ * `m` values are where the DOT'S CENTRE lands; the calc() below backs the
+ * pin's box off by half the dot (5px) and half the pill (12.5px) to get there.
  */
 const READS = [
-  { id: 'texture', label: 'Texture', x: 30, y: 34 },
-  { id: 'hydration', label: 'Hydration', x: 40, y: 56 },
+  { id: 'texture', label: 'Texture', x: 30, y: 34, m: { x: 36.7, y43: 38.0, y32: 39.1 } },
+  { id: 'hydration', label: 'Hydration', x: 40, y: 56, m: { x: 44.7, y43: 67.3, y32: 72.1 } },
 ]
 
 export function WhatItDoes() {
@@ -80,8 +97,14 @@ export function WhatItDoes() {
         <div className="mx-auto max-w-[80rem] overflow-hidden rounded-[2rem]">
           <div className="grid lg:grid-cols-[1fr_1fr]">
 
-            {/* ── Left: the subject, read. */}
-            <div className="relative overflow-hidden">
+            {/* ── Left: the subject, read.
+
+                ≤768px: SECOND, visually. `order` only — the DOM stays image
+                then text at every width, so screen-reader order never changes.
+                The flip keeps this photo from landing directly under the
+                hero's film. The box is also shortened there to a fixed 4:3
+                (3:2 at ≤480), cropped around the face. */}
+            <div className="relative overflow-hidden max-[769px]:order-2 max-[769px]:aspect-[4/3] max-[481px]:aspect-[3/2]">
               <m.img
                 src="/image.jpg"
                 alt="A close-up portrait of a woman's face, skin shown in fine detail"
@@ -91,7 +114,11 @@ export function WhatItDoes() {
                 decoding="async"
                 draggable={false}
                 style={{ scale: still(imgScale, 1), y: still(imgY, '0%') }}
-                className="block aspect-[4/5] w-full origin-center object-cover object-[58%_38%] will-change-transform lg:aspect-auto lg:h-full"
+                /* ≤768px: 104% tall and lifted 2%, so the ±2% scroll parallax
+                   never pulls an edge into the box. Without it a grey strip of
+                   the wash showed along the photo's top — directly under the
+                   text panel once the order flipped. */
+                className="block aspect-[4/5] w-full origin-center object-cover object-[58%_38%] will-change-transform lg:aspect-auto lg:h-full max-[769px]:relative max-[769px]:-top-[2%] max-[769px]:aspect-auto max-[769px]:h-[104%] max-[769px]:object-[center_30%]"
               />
 
               {/* A soft directional wash. The frosted pills carry white text,
@@ -109,12 +136,17 @@ export function WhatItDoes() {
               {READS.map((r, i) => (
                 <m.span
                   key={r.id}
-                  className="absolute flex items-center"
-                  style={{
-                    left: `${r.x}%`,
-                    top: `${r.y}%`,
-                    opacity: still(labelAnim[i], 1),
-                  }}
+                  className="absolute top-[var(--pin-y)] left-[var(--pin-x)] flex items-center max-[769px]:top-[var(--pin-y-43)] max-[769px]:left-[var(--pin-x-m)] max-[481px]:top-[var(--pin-y-32)]"
+                  style={
+                    {
+                      '--pin-x': `${r.x}%`,
+                      '--pin-y': `${r.y}%`,
+                      '--pin-x-m': `calc(${r.m.x}% - 5px)`,
+                      '--pin-y-43': `calc(${r.m.y43}% - 12.5px)`,
+                      '--pin-y-32': `calc(${r.m.y32}% - 12.5px)`,
+                      opacity: still(labelAnim[i], 1),
+                    } as MotionStyle
+                  }
                 >
                   {/* dot → leader → plate. The leader is what ties the label
                       to the point it names; without it the pill reads as
@@ -148,7 +180,7 @@ export function WhatItDoes() {
             {/* ── Right: the writing, on a quiet tint. */}
             <div
               ref={panelRef}
-              className="relative flex flex-col items-center px-8 py-14 text-center sm:px-12 sm:py-16 lg:px-14 lg:py-20"
+              className="relative flex flex-col items-center px-8 py-14 text-center sm:px-12 sm:py-16 lg:px-14 lg:py-20 max-[769px]:order-1"
               // A field, not a whisper: the reference's right half is clearly
               // its own surface. Indigo pulled back toward white so it still
               // belongs to the icon palette.

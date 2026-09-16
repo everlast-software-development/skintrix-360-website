@@ -48,7 +48,11 @@ export function Navbar() {
         )}
       >
         <div className="shell flex h-18 items-center justify-between">
-          <a href={home + '#top'} aria-label="SkinTrix360 home">
+          {/* `#`, not `#top`. The hero carries `id="top"` and is PINNED: once
+              scrolled past, it sits at the end of its pin spacer, so `#top`
+              landed ~2400px down the page. An empty fragment is always the top
+              of the document. From a legal page it is a plain `/`. */}
+          <a href={home || '#'} aria-label="SkinTrix360 home">
             <Logo />
           </a>
 

@@ -565,7 +565,10 @@ export function HowItWorks() {
             {/* `--dx` is the outer phones' horizontal offset from centre, tuned
                 per breakpoint so the fan widens with the panel and never pushes
                 an outer phone into the clipped edge. */}
-            <div className="relative mx-auto h-[18rem] w-full max-w-[52rem] [--dx:3.75rem] sm:h-[26rem] sm:[--dx:9.5rem] lg:h-[34rem] lg:[--dx:14rem]">
+            {/* An inline-size container, so a phone can be capped at `100cqw`:
+                the stage IS the panel's inner width, and sizing by height alone
+                let the square centre image run 16px past it at 320. */}
+            <div className="relative mx-auto h-[18rem] w-full max-w-[52rem] [container-type:inline-size] [--dx:3.75rem] sm:h-[26rem] sm:[--dx:9.5rem] lg:h-[34rem] lg:[--dx:14rem]">
               {FAN.map((slot) => {
                 const step = STEPS[slot.i]
                 return (
@@ -592,7 +595,10 @@ export function HowItWorks() {
                         loading="lazy"
                         decoding="async"
                         draggable={false}
-                        className={`${slot.h} w-auto max-w-none`}
+                        /* min(height-derived width, stage width). `object-contain`
+                           keeps the ratio when the cap binds, shrinking the
+                           phone inside its box rather than squashing it. */
+                        className={`${slot.h} w-auto max-w-[100cqw] object-contain`}
                       />
                     </m.div>
                   </div>

@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'react'
 import type { ComponentType } from 'react'
 import { FaFacebookF, FaInstagram, FaSnapchat, FaTiktok, FaXTwitter } from 'react-icons/fa6'
 
@@ -68,9 +69,11 @@ import { SITE } from '@/lib/site'
  * either end; and `calc(100svh - var(--footer-h))` is never negative, so the
  * sticky child cannot be pushed off its own track.
  *
- * On a viewport SHORTER than the content — a 1440x700 desktop window, say —
- * the cap loses to `100svh` and the inner `overflow-y-auto` takes up the
- * remainder. That is the intended safety net, not the plan.
+ * On a viewport SHORTER than the content — a 375x667 or 320x568 phone, a
+ * 1440x700 desktop window — no fixed layer can show all of it, so the footer
+ * measures that case and drops into normal flow instead (`data-reveal="flow"`,
+ * see `fits` in the component). The inner `overflow-y-auto` used to take up
+ * the remainder there, which is what cut the wordmark off.
  *
  * `FaSnapchatGhost` does not exist in react-icons/fa6 — Font Awesome renamed
  * it to `FaSnapchat` in v6. Same glyph, already installed.
@@ -302,29 +305,69 @@ export function Footer() {
   const md = useMediaQuery('(min-width: 769px)')
   const wordmarkSize = xl ? 190 : lg ? 150 : md ? 100 : 56
 
+  /**
+   * Whether the reveal FITS. A fixed layer can never be taller than the
+   * viewport it is fixed to — `min(100svh, …)` below guarantees that — so when
+   * the content is taller than the screen (735px of it on a 667px or 568px
+   * phone, or a short desktop window) the reserve came out shorter than the
+   * content and the bottom of the footer was cut. Raising the cap does not
+   * help: `100svh` is the side of the `min()` that wins.
+   *
+   * So on those viewports the footer drops the reveal and sits in normal flow,
+   * where its reserve IS its content height and nothing can be cut. Everywhere
+   * the content fits, the reveal is untouched.
+   *
+   * `column.scrollHeight` is the content height in both modes (in the reveal
+   * it is at least the reserve, never less than the content), so toggling the
+   * mode cannot change the answer and the observer cannot oscillate.
+   */
+  const columnRef = useRef<HTMLDivElement>(null)
+  const [fits, setFits] = useState(true)
+
+  useEffect(() => {
+    const column = columnRef.current
+    if (!column) return
+    const probe = document.createElement('div')
+    probe.style.cssText = 'position:fixed;top:0;height:100svh;width:0;visibility:hidden;pointer-events:none'
+    const check = () => {
+      document.body.appendChild(probe)
+      const svh = probe.getBoundingClientRect().height || window.innerHeight
+      probe.remove()
+      setFits(column.scrollHeight <= Math.ceil(svh) + 1)
+    }
+    check()
+    const ro = new ResizeObserver(check)
+    ro.observe(column)
+    window.addEventListener('resize', check)
+    return () => {
+      ro.disconnect()
+      window.removeEventListener('resize', check)
+    }
+  }, [])
+
   return (
     <footer
       /* `--footer-h` is measured, not chosen, and lives here and nowhere else
          — both heights below read it and they must never diverge.
 
-         The clip-path is a `min-[769px]:` arbitrary property rather than an
-         inline style so it can be switched off with the rest of the reveal;
-         the computed polygon is byte-identical to the inline version. */
-      className="relative h-[var(--footer-h)] w-full [--footer-h:min(100svh,760px)] [clip-path:polygon(0%_0,100%_0%,100%_100%,0_100%)] min-[769px]:[--footer-h:min(100svh,820px)] min-[1025px]:[--footer-h:min(100svh,880px)]"
+         `data-reveal="flow"` is the no-fit case above: every height goes back
+         to auto and the fixed/sticky layers become ordinary blocks. */
+      data-reveal={fits ? undefined : 'flow'}
+      className="group/footer relative h-[var(--footer-h)] w-full [--footer-h:min(100svh,760px)] [clip-path:polygon(0%_0,100%_0%,100%_100%,0_100%)] min-[769px]:[--footer-h:min(100svh,820px)] min-[1025px]:[--footer-h:min(100svh,880px)] data-[reveal=flow]:h-auto"
       style={{ background: C.ground }}
     >
       <div
-        className="fixed bottom-0 h-[var(--footer-h)] w-full"
+        className="fixed bottom-0 h-[var(--footer-h)] w-full group-data-[reveal=flow]/footer:static group-data-[reveal=flow]/footer:h-auto"
         style={{ background: C.ground }}
       >
-        <div className="sticky top-[calc(100svh-var(--footer-h))] h-full overflow-y-auto">
+        <div className="sticky top-[calc(100svh-var(--footer-h))] h-full overflow-y-auto group-data-[reveal=flow]/footer:static group-data-[reveal=flow]/footer:h-auto group-data-[reveal=flow]/footer:overflow-visible">
           {/* `flex-[1_0_auto]` on the column, not `flex-1`: grow into any slack
               the reserve leaves over, but never compress below the content's
               natural height. That slack lands above the band, which keeps the
               band flush with the very bottom edge. With the reveal off,
               `h-full` resolves against an auto-height parent, so it means
               nothing and the column is simply as tall as its content. */}
-          <div className="flex h-full flex-col">
+          <div ref={columnRef} className="flex h-full flex-col">
             <div className="mx-auto flex w-full max-w-[900px] flex-[1_0_auto] flex-col items-center px-6 pt-14 text-center">
               {/* ── logo ─────────────────────────────────────────────────── */}
               <a

@@ -225,7 +225,10 @@ export function FitScoreSection({
   return (
     <section
       ref={sectionRef}
-      id="fit-score"
+      /* `download`, not `fit-score`: this is the one section that shows BOTH
+         store badges, so it is where every "Download the App" and "Get
+         Started" lands. Nothing styles or queries the old id. */
+      id="download"
       aria-labelledby="fit-score-heading"
       className="w-full overflow-x-clip py-[clamp(2rem,4vw,3.5rem)]"
       style={{ background: '#F5F6FD' }}

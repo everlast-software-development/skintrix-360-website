@@ -107,28 +107,41 @@ export default function App() {
    * section a tick later and the visitor is left at the top. That is why
    * `/#download` from the legal pages' navbar appeared to do nothing.
    *
-   * One pass, on mount, after the sections exist. `scroll-padding-top: 6rem`
-   * on `html` keeps the fixed navbar off the target.
+   * NOT ONE PASS. A single `scrollIntoView` on mount measured the page
+   * before it was finished: `#download` is a lazy section that does not exist
+   * yet, and the hero's pin spacer and the other lazy chunks then insert
+   * thousands of pixels ABOVE any target that did exist, so `/#how-it-works`
+   * came to rest inside the hero. Instead the page is re-aligned every time
+   * the document's height changes, until the visitor takes over (any wheel,
+   * touch, key or pointer) or the page has had a few seconds to settle.
+   * `scroll-padding-top: 6rem` on `html` keeps the fixed navbar off the target.
    *
    * `scrollIntoView()` with no argument means `behavior: auto`, which reads
    * the computed `scroll-behavior` — declared `auto` on `html` in index.css
    * — so this is an instant jump, never an animated one.
    *
-   * Deliberately not reactive and deliberately silent when the hash matches
-   * nothing: an in-page click is the browser's own fragment navigation, and
-   * this must never fight it.
+   * Only for a hash present at LOAD. An in-page click is the browser's own
+   * fragment navigation, and this must never fight it.
    */
   useEffect(() => {
-    const { hash } = window.location
-    if (hash.length <= 1) return
+    const id = window.location.hash.slice(1)
+    if (!id) return
 
-    let target: Element | null = null
-    try {
-      target = document.querySelector(hash)
-    } catch {
-      return // a hash that is not a valid selector is not ours to handle
+    const align = () => document.getElementById(id)?.scrollIntoView()
+    const ro = new ResizeObserver(align)
+    const stopEvents = ['wheel', 'touchstart', 'keydown', 'pointerdown'] as const
+    let timer: number | undefined
+    const stop = () => {
+      ro.disconnect()
+      window.clearTimeout(timer)
+      stopEvents.forEach((type) => window.removeEventListener(type, stop))
     }
-    target?.scrollIntoView()
+
+    align()
+    ro.observe(document.body)
+    stopEvents.forEach((type) => window.addEventListener(type, stop, { passive: true }))
+    timer = window.setTimeout(stop, 6000)
+    return stop
   }, [])
 
   return (
