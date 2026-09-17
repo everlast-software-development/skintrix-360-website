@@ -70,13 +70,16 @@ const ev = (
 
 const DAILY: PlanEvent[] = [
   ev('am', 'Morning Skincare Routine', 'morning', '7:00 AM', 'Daily'),
-  ev('collagen', 'Hydrolysed Collagen Peptides', 'supplement', '7:30 AM', 'Daily'),
-  ev('lutein', 'Lutein and Zeaxanthin', 'supplement', '12:30 PM', 'Daily'),
-  ev('omega', 'Omega-3 Fatty Acids (EPA and DHA)', 'supplement', '7:30 PM', 'Daily'),
   ev('pm', 'Evening Skincare Routine', 'evening', '9:00 PM', 'Daily'),
 ]
 
-/* ── the reminders and treatments that vary by weekday ────────────────────── */
+/* ── the supplements, reminders and treatments that rotate by weekday ─────── */
+
+const S = {
+  collagen: ev('collagen', 'Hydrolysed Collagen Peptides', 'supplement', '7:30 AM', 'Daily'),
+  lutein: ev('lutein', 'Lutein and Zeaxanthin', 'supplement', '12:30 PM', 'Daily'),
+  omega: ev('omega', 'Omega-3 Fatty Acids (EPA and DHA)', 'supplement', '7:30 PM', 'Daily'),
+} as const
 
 const L = {
   hydration: ev('ls-hydration', 'Hydration: Lifestyle Reminder', 'lifestyle', '7:15 AM', 'Weekly'),
@@ -95,24 +98,30 @@ const T = {
 
 /**
  * The allocation, INDEXED 0–6 TO MATCH `getDay()` — index 0 is Sunday.
- * The days differ visibly on purpose: Monday carries all five reminders and
- * no treatment, Friday carries two treatments, Tuesday only two reminders.
+ *
+ * AT MOST ONE OF EACH per day: the two routines, one supplement, one
+ * lifestyle reminder and zero or one treatment — 4 or 5 events. One of each
+ * type is enough to explain the idea; three supplements on one day was noise.
+ * The days differ by WHICH supplement and reminder appear, not by how many.
  */
-const ALLOCATION: { lifestyle: PlanEvent[]; treatments: PlanEvent[] }[] = [
-  { lifestyle: [L.hydration, L.sun, L.sleep], treatments: [T.eyeMask] }, // Sun
-  { lifestyle: [L.hydration, L.sun, L.nutrition, L.eyes, L.sleep], treatments: [] }, // Mon
-  { lifestyle: [L.hydration, L.nutrition], treatments: [T.salicylic] }, // Tue
-  { lifestyle: [L.hydration, L.sun, L.eyes], treatments: [T.eyeMask] }, // Wed
-  { lifestyle: [L.hydration, L.nutrition, L.sleep], treatments: [] }, // Thu
-  { lifestyle: [L.hydration, L.sun, L.eyes, L.sleep], treatments: [T.pha, T.retinal] }, // Fri
-  { lifestyle: [L.hydration, L.sleep], treatments: [T.retinal] }, // Sat
+const ALLOCATION: { supplement: PlanEvent; lifestyle: PlanEvent; treatment?: PlanEvent }[] = [
+  { supplement: S.omega, lifestyle: L.sleep, treatment: T.eyeMask }, // Sun
+  { supplement: S.collagen, lifestyle: L.hydration }, // Mon
+  { supplement: S.lutein, lifestyle: L.nutrition, treatment: T.salicylic }, // Tue
+  { supplement: S.collagen, lifestyle: L.sun }, // Wed
+  { supplement: S.omega, lifestyle: L.eyes, treatment: T.retinal }, // Thu
+  { supplement: S.lutein, lifestyle: L.hydration, treatment: T.pha }, // Fri
+  { supplement: S.collagen, lifestyle: L.sleep }, // Sat
 ]
 
 /* Built once at module load, each day sorted by its minutes-from-midnight
    key. Array#sort is stable in V8, so two events at the same minute keep
-   their declared order (the daily supplement before the reminder). */
+   their declared order: the routine before a treatment at 9:00 PM, the
+   supplement before the reminder at 12:30 PM. */
 const BY_WEEKDAY: PlanEvent[][] = ALLOCATION.map((day) =>
-  [...DAILY, ...day.lifestyle, ...day.treatments].sort((a, b) => a.at - b.at),
+  [...DAILY, day.supplement, day.lifestyle, ...(day.treatment ? [day.treatment] : [])].sort(
+    (a, b) => a.at - b.at,
+  ),
 )
 
 /**

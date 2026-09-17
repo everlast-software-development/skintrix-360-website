@@ -547,8 +547,12 @@ export function HowItWorks() {
       <div className="shell relative">
         <div className="section-head">
           <FeatureTile group="analysis" icon={LuCamera} name="How it works" />
+          {/* NOT "How it works" — that is the feature tile's label directly
+              above, and having both made the phrase appear twice in a row on
+              screen and announced twice by a screen reader. The tile names the
+              feature; the heading says what it gets you. */}
           <h2 ref={headingRef} id="how-heading" className="text-section">
-            How it works
+            From one photo to a plan you can follow.
           </h2>
           <Reveal delay={0.08}>
             <p className="text-lead mt-5">

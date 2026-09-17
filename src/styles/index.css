@@ -2339,10 +2339,21 @@ body { background: transparent; color: var(--text-soft); }
    --------------------------------------------------------------------------- */
 
 #skin-plan {
-  /* Reserved height for the agenda list, so switching from an eight-event day
-     to an eleven-event one does not shunt the bands below it up the page.
-     Set from the measured tallest day, not estimated. */
-  --sp-agenda-min: 800px;
+  /* Reserved height for the agenda list, so switching between days does not
+     shunt the bands below it up the page. Set from the measured tallest day,
+     not estimated — and it has to be RE-MEASURED whenever the agenda data
+     changes, which is what went wrong here.
+     
+     It was 800px, from back when the tallest day carried eleven events. The
+     data was later trimmed to at most one of each type per day, so every day
+     now holds four or five events and the tallest list measures 355px. The
+     other 445px was empty in every state the section can be in — the blank
+     band between the last event and the closing note.
+     
+     355px is the tallest of the seven days (five events); a four-event day is
+     282px, so the reserve still absorbs the 73px difference and nothing below
+     moves when you tap between days. */
+  --sp-agenda-min: 355px;
   --sp-hairline: #ebeef7;
   --sp-band: #f7f8fd;
 }

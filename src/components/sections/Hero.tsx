@@ -1327,6 +1327,30 @@ function SimpleHero() {
   const [stage, setStage] = useState(0)
 
   /**
+   * THE CLIMB, AS A SHARE OF THE RISER'S OWN HEIGHT — the desktop motion.
+   *
+   * The 1440 canvas moves its film-and-phone group from y=394 to y=233 at
+   * stage 1 and holds there: 161 canvas px, which is 0.24 x the device's
+   * height. This reproduces that exact ratio at every width below 1025.
+   *
+   * A percentage translateY resolves against the element's OWN height, and the
+   * riser is the device plus the film's overhang above it:
+   *   0.382 x --dw  +  2.032 x --dw  =  2.414 x --dw
+   * The move from stage 0 to stage 1 is the 4% nudge plus this, so for the
+   * desktop's 0.24 x device height:
+   *   0.24 x 2.032 x --dw = 0.488 x --dw
+   *   0.488 / 2.414 = 20.2% total, less the 4% nudge = 16.2%
+   * One constant, the same travel-to-device ratio at every size, nothing to
+   * measure and nothing to keep in sync on resize. Verified at 0.240 against
+   * the 1440 canvas at all eleven widths below 1025.
+   *
+   * KEEP THIS IN STEP WITH THE OVERHANG MARGIN. The percentage is a share of
+   * the riser, so changing that margin changes the travel: at 0.15 overhang
+   * this same 16.2% delivers 0.217, not 0.240.
+   */
+  const STAGE_LIFT_PCT = 16.2
+
+  /**
    * The pin, at every width this component covers — including 375.
    *
    * Same construction as the desktop canvas: `gsap.matchMedia` with no gap
@@ -1548,7 +1572,15 @@ function SimpleHero() {
              viewport too short to hold it, it is cut at the slot edge rather
              than riding up into the CTA row. The SECTION still owns the
              horizontal clip. ────────────────────────────────────────────── */}
-        <div className="relative mt-4 min-h-0 flex-1 overflow-hidden [container-type:size]">
+        {/* The clip is stage-dependent. At stage 0 it is what keeps the film
+            off the buttons. From stage 1 the composition lifts ABOVE this
+            box's top edge, so a clip here would cut the phone's crown — and
+            the buttons it was protecting are invisible by then anyway. The
+            SECTION still owns the horizontal clip at every stage. */}
+        <div
+          className="relative mt-4 min-h-0 flex-1 [container-type:size]"
+          style={{ overflow: stage === 0 ? 'hidden' : 'visible' }}
+        >
           {/* ── the device: present at every stage, and the thing the label
              lives inside. Lifted once the intro clears, so stage 0 reads as
              "text above, phone entering" and the card stages read as "phone
@@ -1572,9 +1604,21 @@ function SimpleHero() {
           <div
             className="absolute inset-x-0 top-0 flex justify-center"
             style={{
-              /* 4%, not 12%: the larger nudge was most of the empty band
-                 between the buttons and the phone at 430. */
-              transform: `translateY(${stage === 0 ? 4 : 0}%)`,
+              /* Stage 0: the 4% nudge, so the phone reads as entering under the
+                 copy — the same beat the canvas has. Stages 1-3: up by the
+                 desktop's own travel ratio, and held across all three card
+                 sets, so the climb happens once and then the sequence is still.
+                 Stage 4: back down to base.
+
+                 The canvas holds its lift at stage 4, and this deliberately
+                 does not, because the two lay the closing state out
+                 differently: on the canvas the closing copy sits BELOW the
+                 phone and fills the space the lift opens up, while here it is
+                 overlaid at the top of the screen. Holding the lift here left
+                 the phone high with nothing under it — 142px of empty band at
+                 912x1368, at exactly the point the next section comes into
+                 view. */
+              transform: `translateY(${stage === 0 ? 4 : stage === 4 ? 0 : -STAGE_LIFT_PCT}%)`,
               transition: 'transform 0.6s cubic-bezier(0.16,1,0.3,1)',
             }}
           >
@@ -1584,9 +1628,18 @@ function SimpleHero() {
                 {
                   width: 'var(--dw)',
                   aspectRatio: '697 / 1416',
-                  /* The film overhangs the device's top by 38.2% of `--dw`; the
-                   device is pushed down by exactly that so the film's top edge
-                   lands where the device's top would have been. */
+                  /* 0.382 — the film's FULL overhang above the device, so the
+                     film's top edge lands exactly ON the slot boundary and the
+                     slot's clip has nothing to cut.
+
+                     This was briefly 0.15 to save 111px of space above the
+                     phone. That was wrong: the mask's top 9% is a GRADIENT
+                     from transparent to opaque, not a transparent band, so a
+                     cut 0.232 x --dw down lands where the mask is already ~89%
+                     opaque — a hard horizontal edge straight across her hair.
+                     The empty band above the phone is dealt with by the stage
+                     lift below, which is the right tool for it: it only moves
+                     the composition once the copy has faded out. */
                   marginTop: 'calc(var(--dw) * 0.382)',
                 } as CSSProperties
               }
