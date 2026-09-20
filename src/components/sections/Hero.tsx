@@ -243,8 +243,10 @@ const STAGE_COUNT = CARD_GROUPS.length + 2
 const STAGE_BUDGET_VH = 0.55
 /** 769–1024px. */
 const STAGE_BUDGET_VH_TAB = 0.5
-/** ≤768px. */
-const STAGE_BUDGET_VH_NARROW = 0.45
+/** ≤768px. Was 0.45, which made every stage on a phone 18% shorter than the
+    same stage on desktop — the sequence arrived faster and read as abrupt.
+    Matched to the desktop figure so the pacing is identical at every width. */
+const STAGE_BUDGET_VH_NARROW = 0.55
 
 /**
  * One card set at a time — stage 0 is the clean intro, STAGE_COUNT-1 the close.
@@ -1556,7 +1558,20 @@ function SimpleHero() {
              the viewport' solves to --dw = 0.277 x 100svh. 60cqw is the rail
              that stops a tall narrow phone asking for a device wider than the
              screen can hold beside the cards. */
-          #top .hero-dev { --dw: clamp(120px, min(calc(100svh * 0.277), 60cqw), 300px); margin-top: 0 !important; }
+          /* THE DEVICE, at a readable size.
+
+             The film is a square box 2.909 x --dw, so the film's HEIGHT is
+             always 1.432 x the device's height — desktop's own proportion,
+             and it holds automatically at any --dw. What went wrong was not
+             that ratio but the absolute size: sizing --dw off viewport HEIGHT
+             (0.277 x 100svh) put a 680px film on a 390px screen, 1.74x the
+             viewport, so the face filled everything.
+
+             Sizing off WIDTH instead lands the film at about 1.16x the
+             viewport — past the edges, clipped by the section, the way
+             desktop's 751px film sits inside a 1440px frame without
+             dominating it. 20svh is the short-viewport rail. */
+          #top .hero-dev { --dw: clamp(120px, min(40cqw, 20svh), 200px); margin-top: 0 !important; }
           #top .hero-slot { margin-top: 8px !important; overflow: visible !important; }
         }
 
@@ -1591,6 +1606,39 @@ function SimpleHero() {
            the wrapper above cannot read it. The wrapper's inline transform is
            neutralised rather than fought with; the easing and duration carry
            over unchanged, so it is the same gesture. */
+        /* ── STAGE 4: THE PHONE AND THE CLOSING TEXT ARE ONE GROUP ────────
+           The closing block is 'position: absolute; bottom: 0' and the phone
+           was centred in the band above it, so the centring's LOWER margin
+           — 116px at 360, 125px at 390, 152px at 430 — sat between them as
+           dead space. Neither the section nor the block carries any padding
+           or margin: measured 0 on all four sides, so there was nothing to
+           trim. The gap was the phone's own resting rule.
+
+           Both halves now come off one number. The pair is treated as a
+           single group with a fixed 24px between them, and whatever is left
+           over is split evenly above the phone and below the text — the same
+           treatment stages 1-3 already give the phone and its card grid.
+
+           DECLARED ON '#top', not on '.hero-dev': the closing block is a
+           SIBLING of the slot, so it cannot read a variable set inside it.
+           That also rules out container units here, hence '40vw' rather than
+           the '40cqw' the device itself uses — on a phone there is no
+           persistent scrollbar, so the two agree, and this only feeds a
+           vertical offset either way. */
+        @media (max-width: 600px) {
+          #top {
+            --m-dev-h: calc(clamp(120px, min(40vw, 20svh), 200px) * 2.0316);
+            --m-close-h: 214px;
+            --m-close-gap: 24px;
+            /* Floored, so a very short viewport tightens the margins rather
+               than pulling the phone up off the top of the screen. */
+            --m-slack: max(16px, calc((100svh - 72px - env(safe-area-inset-bottom, 0px)
+                       - var(--m-dev-h) - var(--m-close-gap) - var(--m-close-h)) / 2));
+          }
+
+          #top[data-hero-stage='4'] .hero-close-phone { bottom: var(--m-slack); }
+        }
+
         @media (max-width: 600px) {
           #top .hero-lift { transform: none !important; }
 
@@ -1614,29 +1662,51 @@ function SimpleHero() {
             --face-end: calc(var(--dw) * 1.0725 + var(--film-h) * 0.28);
             /* 214px is the measured closing block, 8px the gap under the face. */
             --clear: calc(100cqh - var(--face-end) - 222px);
-            /* THE FILL POSITION. The group's top edge is the film's top, which
-               sits 0.382 x --dw above the device — so putting the group 6% down
-               the viewport means putting the device there plus that overhang. */
-            --top-aligned: calc(6svh + var(--dw) * 0.382 - (100svh - 100cqh));
-            /* The clearance rule can ask for more lift than the screen has —
-               on a 320x568 it wanted the group 8px above the top edge. This
-               floors it at 'group top = 0', so the film is never cut at the
-               crown. */
-            --no-clip: calc(var(--dw) * 0.382 - (100svh - 100cqh));
-            --rest: max(var(--no-clip), min(var(--top-aligned), var(--clear)));
-            /* Stage 0 keeps the headline beat: the device at 42.5% of the
-               viewport, under the copy. */
-            --stage0: calc(42.5svh - (100svh - 100cqh));
+            /* ── WHERE THE GROUP SITS ─────────────────────────────────────
+               Three positions, one per beat, all derived rather than dialled
+               in. Every one is expressed against '--natural' — how far down
+               the slot starts, which is the copy block's height read live as
+               '100svh - 100cqh' rather than guessed at.
+
+               '--film-over' is the film's overhang above the device. It is
+               the term that was missing from the old stage-0 value, and it is
+               why the buttons sat on the face: the DEVICE cleared them but
+               the film's top edge, 0.382 x --dw higher, did not. */
+            --film-over: calc(var(--dw) * 0.382);
+            --natural: calc(100svh - 100cqh);
+            --header: calc(72px + env(safe-area-inset-top, 0px));
+            --safe-b: env(safe-area-inset-bottom, 0px);
+
+            /* The group is the phone PLUS the grid under it, so the leftover
+               space is shared above and below rather than parked at one end. */
+            --group-h: calc(var(--dev-h) + var(--grid-top) + var(--grid-h));
+            --rest: calc(var(--header) + (100svh - var(--header) - var(--safe-b) - var(--group-h)) / 2 - var(--natural));
+
+            /* Stage 0: the FILM's top edge lands 16px under the buttons, so
+               nothing the visitor can read is ever touched by the image. */
+            --stage0: calc(var(--film-over) + 8px);
+
+            /* Stage 4: the grid is gone, and the phone sits one '--m-close-gap'
+               above the closing text rather than being centred in the whole
+               band — that centring was the gap. '--m-slack' is inherited from
+               the section rule above, so the phone and the text move together
+               and the 24px between them cannot drift. */
+            --stage4: calc(var(--header) + var(--m-slack) - var(--natural));
+
             transform: translateY(var(--rest));
             transition: transform 0.6s cubic-bezier(0.16,1,0.3,1);
           }
 
-          /* Stage 0 is the only one that differs. The travel is whatever the
-             distance between the headline position and the fill position comes
-             to — that distance IS the rise that carries the group up. */
-          #top[data-hero-stage='0'] .hero-dev {
-            transform: translateY(var(--stage0));
-          }
+          /* Stages 1-3 take '--rest' from the rule above; these two differ. */
+          #top[data-hero-stage='0'] .hero-dev { transform: translateY(var(--stage0)); }
+          #top[data-hero-stage='4'] .hero-dev { transform: translateY(var(--stage4)); }
+
+          /* Safe areas. The notch eats into the copy block's top padding and
+             the home indicator into the closing block's bottom, so both are
+             widened by the inset rather than the 100svh box being shrunk —
+             shrinking it would reintroduce the gap this is meant to remove. */
+          #top .hero-copy { padding-top: calc(76px + env(safe-area-inset-top, 0px)); }
+          #top .hero-close-phone { padding-bottom: calc(28px + env(safe-area-inset-bottom, 0px)); }
         }
 
         /* The four-card overlay. Guarded on container units: without them the
@@ -1646,10 +1716,25 @@ function SimpleHero() {
         @supports (width: 1cqw) {
           @media (max-width: 600px) {
             #top .hero-dev {
-              --gap: 12px;
-              /* Derived from the device, not from the viewport, so the two
-                 cannot shrink at different rates when the height cap binds. */
-              --cw: calc(var(--dw) * 0.62);
+              /* THE GRID. Capped at 340px so the pair never stretches into
+                 two very wide, very short cards on a 430px screen; 16px of
+                 gutter either side on anything narrower. */
+              --grid-w: min(calc(100cqw - 32px), 340px);
+              --card-gap: 10px;
+              --grid-top: 14px;
+              /* The column width, which is also the card width the type
+                 scale below is derived from. */
+              --cw: calc((var(--grid-w) - var(--card-gap)) / 2);
+              /* Card height as a share of card width. NOT desktop's 0.612:
+                 at 165px instead of 188px the title and the longest meta line
+                 ("Cleanser · Moisturizer · SPF") both wrap to two lines, and
+                 the card comes out 160px tall — measured, not assumed. The
+                 reserve is sized for the TALLEST stage so the grid's bottom
+                 row can never fall off the screen on the one stage whose text
+                 runs longest; the shorter stages simply sit with a little more
+                 air beneath them. */
+              --card-h: calc(var(--cw) * 0.98);
+              --grid-h: calc(2 * var(--card-h) + var(--card-gap));
             }
 
             /* THE FILM, capped. Desktop stays 2.909 x the device and is not
@@ -1671,30 +1756,59 @@ function SimpleHero() {
               top: calc(var(--dw) * 1.0725 - var(--film) / 2) !important;
             }
 
-            /* Cards OVERLAY the device edges. The outer edge of each column
-               is pinned 12px inside the viewport — that is what guarantees
-               all four are fully on screen at every width, 320 included —
-               and the overlap onto the device is whatever is left over. */
-            #top .hero-flank { width: var(--cw) !important; }
-            #top .hero-flank--0, #top .hero-flank--1 {
-              left: calc(var(--gap) - (100cqw - var(--dw)) / 2) !important;
+            /* ── THE 2x2, BELOW THE PHONE ─────────────────────────────────
+               The cards used to flank the device, which on a phone meant
+               overlaying it: each column was pinned 12px inside the viewport
+               and whatever was left over landed on the face — 105 to 126px
+               of every card, measured. There is no width on a phone for a
+               card either side of a legible device, so they move under it.
+
+               Still ONE component and ONE data source. '.hero-flanks' is the
+               same per-stage wrapper carrying the same 'op[g]' fade, and each
+               '.hero-flank' still renders the same GlassCard from the same
+               CARD_GROUPS entry. Only the positioning changes: the wrapper
+               stops being 'inset-0' over the device and becomes a grid under
+               it, and the cards stop being absolutely placed.
+
+               It is anchored to the device's bottom ('top: 100%'), so the
+               grid travels with the phone as one group through every stage
+               and the two can never drift apart. */
+            #top .hero-flanks {
+              top: calc(100% + var(--grid-top));
+              right: auto;
+              bottom: auto;
+              left: 50%;
+              width: var(--grid-w);
+              transform: translateX(-50%);
+              display: grid;
+              grid-template-columns: repeat(2, minmax(0, 1fr));
+              gap: var(--card-gap);
             }
-            #top .hero-flank--2, #top .hero-flank--3 {
-              display: block;
-              left: auto;
-              right: calc(var(--gap) - (100cqw - var(--dw)) / 2);
+
+            /* The grid places them, so every absolute coordinate the flanking
+               layout set has to go — including the inline width React writes
+               for cards 0 and 1. */
+            #top .hero-flank {
+              position: static !important;
+              width: auto !important;
+              left: auto !important;
+              right: auto !important;
+              top: auto !important;
             }
-            /* The right column sits a touch higher than the left, which is
-               the desktop relationship (slot 2 is 30 canvas px above slot 0). */
-            /* The stacked pair's spacing is the desktop's own, as a share of
-               the device rather than a measured card height: slot 1 sits 270
-               canvas px below slot 0 against a 670 canvas-px device, which is
-               40.3%. No card height needs to be known, so nothing has to be
-               measured at runtime and the two never drift apart. */
-            #top .hero-flank--0 { top: 15% !important; }
-            #top .hero-flank--1 { top: 55.3% !important; }
-            #top .hero-flank--2 { top: 10.5%; }
-            #top .hero-flank--3 { top: 50.8%; }
+            #top .hero-flank--2, #top .hero-flank--3 { display: block; }
+
+            /* READ ORDER. The DOM is 0,1,2,3 — cards 0 and 1 are the desktop
+               LEFT column, 2 and 3 the right. Filling a 2-column grid in DOM
+               order would put the left column's pair across the top row and
+               transpose the whole arrangement. 'order' restores the desktop
+               reading:
+
+                   Skin Type      | Skin Condition
+                   Skin Concerns  | Skin Analysis     */
+            #top .hero-flank--0 { order: 1; }
+            #top .hero-flank--2 { order: 2; }
+            #top .hero-flank--1 { order: 3; }
+            #top .hero-flank--3 { order: 4; }
 
             /* ── THE CARD, SCALED ─────────────────────────────────────────
                Only size changes. The background, the backdrop-filter, the
@@ -1754,7 +1868,7 @@ function SimpleHero() {
              in flow; the close is overlaid on top of it, so the slot — and
              with it the section — is exactly as tall at stage 4 as at stage 0
              and the pin never re-measures. ──────────────────────────────── */}
-        <div className="relative z-20 shrink-0 pt-[76px]">
+        <div className="hero-copy relative z-20 shrink-0 pt-[76px]">
           {/* ── stage 0: the intro ─────────────────────────────────────────── */}
           <div
             className="relative px-6 text-center"
