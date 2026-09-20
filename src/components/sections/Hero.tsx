@@ -1114,32 +1114,32 @@ function GlassCard({
 }) {
   return (
     <div
-      className="overflow-hidden rounded-[22px] border border-white/75 bg-white/55 px-5 pt-5 backdrop-blur-[26px] backdrop-saturate-[1.4] motion-reduce:animate-none"
+      className="hero-card overflow-hidden rounded-[22px] border border-white/75 bg-white/55 px-5 pt-5 backdrop-blur-[26px] backdrop-saturate-[1.4] motion-reduce:animate-none"
       style={{
         animation: `heroFloaty ${floatDuration}s ease-in-out infinite`,
         ...style,
       }}
     >
       <p
-        className="text-[22px] leading-none font-normal tracking-[-0.3px]"
+        className="hero-card__title text-[22px] leading-none font-normal tracking-[-0.3px]"
         style={{ color: 'var(--color-ink)', marginBottom: 13 }}
       >
         {card.title}
       </p>
-      <div className="mb-3.5 flex items-center" style={{ gap: 9 }}>
+      <div className="hero-card__meta mb-3.5 flex items-center" style={{ gap: 9 }}>
         <span
-          className="grid h-5 w-5 shrink-0 place-items-center rounded-full text-[9px]"
+          className="hero-card__glyph grid h-5 w-5 shrink-0 place-items-center rounded-full text-[9px]"
           style={{ background: card.iconBg, color: card.iconColor }}
         >
           {card.icon}
         </span>
-        <span className="text-[12.5px]" style={{ color: 'var(--color-ink-soft)' }}>
+        <span className="hero-card__metatext text-[12.5px]" style={{ color: 'var(--color-ink-soft)' }}>
           {card.meta}
         </span>
       </div>
 
       {card.visual.type === 'bars' ? (
-        <div className="mb-5 flex h-9 items-end gap-1.5">
+        <div className="hero-card__chart hero-card__chart--bars mb-5 flex h-9 items-end gap-1.5">
           {BAR_HEIGHTS.map((height, i) => (
             <div
               key={i}
@@ -1153,7 +1153,7 @@ function GlassCard({
         </div>
       ) : (
         <div
-          className="-mx-5 h-14"
+          className="hero-card__chart hero-card__chart--wave -mx-5 h-14"
           style={{
             background: `linear-gradient(180deg, rgba(${card.visual.tint}, 0.45), rgba(${card.visual.tint}, 0.04))`,
             clipPath: WAVE_CLIP[card.visual.shape],
@@ -1470,8 +1470,8 @@ function SimpleHero() {
         @media (max-width: 1024px) { #top .hero-dev { --dw: min(calc(var(--dw-desktop) * 0.74), 78vw); } }
         /* 601-768: 62% */
         @media (max-width: 768px)  { #top .hero-dev { --dw: min(calc(var(--dw-desktop) * 0.62), 78vw); } }
-        /* <=600: 54% */
-        @media (max-width: 600px)  { #top .hero-dev { --dw: min(calc(var(--dw-desktop) * 0.54), 78vw); } }
+        /* <=600 is no longer a share of the desktop device — see the phone
+           block at the end of this sheet, which sets it outright. */
 
         /* HEIGHT-AWARE SIZING, where container units exist. The tiers above
            stay as the fallback and are what Safari < 16 gets.
@@ -1489,8 +1489,256 @@ function SimpleHero() {
         @supports (height: 1cqh) {
           @media (max-width: 1024px) { #top .hero-dev { --dw: max(min(16vw, 164px), min(32vw, 39cqh, 300px)); } }
           @media (max-width: 768px)  { #top .hero-dev { --dw: max(min(22vw, 150px), min(32vw, 39cqh, 260px)); } }
-          @media (max-width: 600px)  { #top .hero-dev { --dw: max(min(34vw, 132px), min(46vw, 39cqh, 220px)); } }
         }
+
+        /* =====================================================================
+           PHONE (<=600px)
+           =====================================================================
+
+           THE DEVICE IS SIZED OUTRIGHT, not as a share of anything.
+
+           Every tier above is a percentage of the desktop device, capped by a
+           viewport share and then re-capped by '39cqh' — the height left under
+           the copy. On a phone that height is small, so the caps always won and
+           the composition came out at 170px on a 390 viewport: a thumbnail with
+           dead space around it. The caps exist to keep the device INSIDE its
+           slot, and on a phone that is the wrong goal — the composition is
+           meant to fill the screen and run off the edges, exactly as the
+           desktop canvas does.
+
+           So the phone tiers are absolute, and the overflow they create is
+           handled rather than prevented:
+
+             - the film is 2.909 x --dw, so at 268 it is 780px on a 390
+               viewport and runs well past both edges. The SECTION's
+               'overflow-hidden' clips it. Nothing between the section and the
+               film may clip, or the reveal and the pin break.
+             - '.hero-dev''s own 'margin-top' is removed. It reserved the film's
+               38.2% overhang so the film's top edge landed on the slot
+               boundary; that was 65px of empty band above the phone at 390 and
+               it is the single largest part of the gap this fixes. With the
+               slot no longer clipping, the overhang needs no reservation.
+             - the slot's stage-0 clip goes with it, for the same reason. The
+               copy slot is 'z-20' and the device slot has no z-index, so the
+               film passes BEHIND the buttons rather than over them.
+
+           8px is the whole CTA-to-device gap now. */
+        /* 601-1024 keeps the two-card pair; the right column stays out. */
+        #top .hero-flank--2, #top .hero-flank--3 { display: none; }
+
+        @media (max-width: 600px) {
+          /* ONE CONTINUOUS SCALE, no tiers. Every number below is a share of
+             the viewport, so 320 is the low end of the same ramp that runs to
+             600 rather than a special case with its own rules.
+
+                 device   50cqw     160 at 320, 195 at 390, 215 at 430, 300 at 600
+                 card     0.62 x device, so the pair always shrinks together
+                 outer gap 12px     constant, so the outer edge always shows
+
+             '66cqh' is the second half of the same ramp, and it is not a
+             tier either. The copy block is 391px tall at every phone width —
+             the two calls to action stack below 481px, by existing design —
+             so on a 568px-tall screen it takes 69% of the viewport and the
+             slot left under it is only 169px. Width alone would put a 160px
+             device there and drop the lower pair of cards below the fold.
+             The composition runs 1.5 x the device width from the device's top
+             to the bottom card's bottom, so holding the device to 66% of the
+             slot height is what keeps all four cards on screen. On a tall
+             phone the width side of the min() always wins and nothing
+             changes.
+
+             'cqw' and not 'vw': the slot is a size container and 'vw' counts
+             the scrollbar, so a narrow DESKTOP window would place the outer
+             card edge under the scrollbar and clip it. 'cqw' is the real
+             content width in both cases. */
+          /* SIZED FROM HEIGHT, capped by width. The group's full height is the
+             FILM's height, and the film is 2.909 x --dw — so 'group = 80% of
+             the viewport' solves to --dw = 0.277 x 100svh. 60cqw is the rail
+             that stops a tall narrow phone asking for a device wider than the
+             screen can hold beside the cards. */
+          #top .hero-dev { --dw: clamp(120px, min(calc(100svh * 0.277), 60cqw), 300px); margin-top: 0 !important; }
+          #top .hero-slot { margin-top: 8px !important; overflow: visible !important; }
+        }
+
+        /* =====================================================================
+           THE RISE — the desktop motion, at phone scale
+           =====================================================================
+
+           MEASURED, NOT INVENTED. At 1440 the composition translates from 394
+           to 226 canvas px as stage 0 clears: 131 screen px against a 526px
+           device, a ratio of 0.249. It then HOLDS that lift through stages 1,
+           2, 3 AND 4 — the closing stage included.
+
+           The phone did neither. Its lift was a flat -16.2% of the device
+           height (ratio 0.202, close but not equal), and at stage 4 it went
+           back to translateY(0), so the travel from stage 0 to the close came
+           out at 0.039 — effectively nothing. That return is why the closing
+           headline landed on the face: the film dropped back into it.
+
+           Two faults, both fixed here:
+
+             - the RATIO is now 0.249, desktop's own measured figure;
+             - the RESTING PLACE is now derived the way restingShift() derives
+               it on desktop — centre the composition in the space below the
+               header — rather than being a share of the device height with no
+               viewport term at all. That is what removes the empty band: the
+               phone was lifting by a real amount, but from a starting point
+               46% of the viewport down.
+
+           WHY THIS SITS ON .hero-dev AND NOT ON .hero-lift. The resting
+           expression needs '--dw' and the slot's container units, and '--dw'
+           is declared on .hero-dev — custom properties inherit downward, so
+           the wrapper above cannot read it. The wrapper's inline transform is
+           neutralised rather than fought with; the easing and duration carry
+           over unchanged, so it is the same gesture. */
+        @media (max-width: 600px) {
+          #top .hero-lift { transform: none !important; }
+
+          #top .hero-dev {
+            /* 1416/697 — the frame's own aspect, so this is the device's
+               rendered height with nothing measured at runtime. */
+            --dev-h: calc(var(--dw) * 2.0316);
+            /* 100cqh is the slot's height and 100svh the viewport, so
+               '100svh - 100cqh' is exactly how far down the slot starts —
+               the copy block's height, whatever it comes out at. */
+            /* The film's own width, repeated from the film rule below so the
+               face's position can be derived here. */
+            --film-h: calc(var(--dw) * 2.909);
+            /* WHERE THE FACE ENDS. The mask's linear pass fades the film out
+               between 52% and 86% of its height, so the last row carrying any
+               face is about 78% down the film box, and the film box itself
+               starts 1.0725 x --dw below the device top less half its height.
+               Measured against the render: at 1440 this lands at y=759 and the
+               closing headline's top edge is y=760. Desktop puts the text
+               exactly where the face stops, and this is that rule. */
+            --face-end: calc(var(--dw) * 1.0725 + var(--film-h) * 0.28);
+            /* 214px is the measured closing block, 8px the gap under the face. */
+            --clear: calc(100cqh - var(--face-end) - 222px);
+            /* THE FILL POSITION. The group's top edge is the film's top, which
+               sits 0.382 x --dw above the device — so putting the group 6% down
+               the viewport means putting the device there plus that overhang. */
+            --top-aligned: calc(6svh + var(--dw) * 0.382 - (100svh - 100cqh));
+            /* The clearance rule can ask for more lift than the screen has —
+               on a 320x568 it wanted the group 8px above the top edge. This
+               floors it at 'group top = 0', so the film is never cut at the
+               crown. */
+            --no-clip: calc(var(--dw) * 0.382 - (100svh - 100cqh));
+            --rest: max(var(--no-clip), min(var(--top-aligned), var(--clear)));
+            /* Stage 0 keeps the headline beat: the device at 42.5% of the
+               viewport, under the copy. */
+            --stage0: calc(42.5svh - (100svh - 100cqh));
+            transform: translateY(var(--rest));
+            transition: transform 0.6s cubic-bezier(0.16,1,0.3,1);
+          }
+
+          /* Stage 0 is the only one that differs. The travel is whatever the
+             distance between the headline position and the fill position comes
+             to — that distance IS the rise that carries the group up. */
+          #top[data-hero-stage='0'] .hero-dev {
+            transform: translateY(var(--stage0));
+          }
+        }
+
+        /* The four-card overlay. Guarded on container units: without them the
+           calcs below are invalid and every card would fall back to no
+           position at all, so the pre-existing 'hidden' behaviour is the
+           right fallback. */
+        @supports (width: 1cqw) {
+          @media (max-width: 600px) {
+            #top .hero-dev {
+              --gap: 12px;
+              /* Derived from the device, not from the viewport, so the two
+                 cannot shrink at different rates when the height cap binds. */
+              --cw: calc(var(--dw) * 0.62);
+            }
+
+            /* THE FILM, capped. Desktop stays 2.909 x the device and is not
+               touched; here the same expression is held to the viewport, so
+               it can never be the thing that overflows. At a 50cqw device the
+               cap always binds and the ratio lands at exactly 2.0x — wider
+               than the phone, the way desktop reads, with no overflow. */
+            #top .hero-dev > div[aria-hidden] {
+              /* NO VIEWPORT CAP — 2.909 x --dw at every width, desktop's own
+                 ratio. The overflow is the SECTION's to clip, which is exactly
+                 what desktop does with a 751px film on a 900px viewport. */
+              --film: calc(var(--dw) * 2.909);
+              width: var(--film) !important;
+              height: var(--film) !important;
+              /* Centred on the device, and holding the film's centre at the
+                 same 1.0725 x --dw below the device top that the uncapped
+                 box puts it, so the crop through her face does not move. */
+              left: calc((var(--dw) - var(--film)) / 2) !important;
+              top: calc(var(--dw) * 1.0725 - var(--film) / 2) !important;
+            }
+
+            /* Cards OVERLAY the device edges. The outer edge of each column
+               is pinned 12px inside the viewport — that is what guarantees
+               all four are fully on screen at every width, 320 included —
+               and the overlap onto the device is whatever is left over. */
+            #top .hero-flank { width: var(--cw) !important; }
+            #top .hero-flank--0, #top .hero-flank--1 {
+              left: calc(var(--gap) - (100cqw - var(--dw)) / 2) !important;
+            }
+            #top .hero-flank--2, #top .hero-flank--3 {
+              display: block;
+              left: auto;
+              right: calc(var(--gap) - (100cqw - var(--dw)) / 2);
+            }
+            /* The right column sits a touch higher than the left, which is
+               the desktop relationship (slot 2 is 30 canvas px above slot 0). */
+            /* The stacked pair's spacing is the desktop's own, as a share of
+               the device rather than a measured card height: slot 1 sits 270
+               canvas px below slot 0 against a 670 canvas-px device, which is
+               40.3%. No card height needs to be known, so nothing has to be
+               measured at runtime and the two never drift apart. */
+            #top .hero-flank--0 { top: 15% !important; }
+            #top .hero-flank--1 { top: 55.3% !important; }
+            #top .hero-flank--2 { top: 10.5%; }
+            #top .hero-flank--3 { top: 50.8%; }
+
+            /* ── THE CARD, SCALED ─────────────────────────────────────────
+               Only size changes. The background, the backdrop-filter, the
+               border, the radius and every colour are inherited untouched
+               from the component's own classes.
+
+               THE SCALE IS WRITTEN AS 'var(--cw) * N / 188', never as a
+               separate ratio variable. 'calc(var(--cw) / 188)' looks like the
+               obvious way to name the ratio, but dividing a length by a number
+               yields a LENGTH — so '22px * that' is px squared, which is
+               invalid, and every rule here silently dropped to the inherited
+               16px. Multiplying the width by the desktop value and dividing by
+               the desktop width keeps one length and one plain ratio. */
+            #top .hero-card {
+              padding: calc(var(--cw) * 20 / 188) calc(var(--cw) * 20 / 188) 0;
+            }
+            #top .hero-card__title {
+              font-size: calc(var(--cw) * 22 / 188);
+              margin-bottom: calc(var(--cw) * 13 / 188) !important;
+              letter-spacing: calc(var(--cw) * -0.3 / 188);
+            }
+            #top .hero-card__meta {
+              gap: calc(var(--cw) * 9 / 188) !important;
+              margin-bottom: calc(var(--cw) * 14 / 188);
+            }
+            #top .hero-card__glyph {
+              width: calc(var(--cw) * 20 / 188);
+              height: calc(var(--cw) * 20 / 188);
+              font-size: calc(var(--cw) * 9 / 188);
+            }
+            #top .hero-card__metatext { font-size: calc(var(--cw) * 12.5 / 188); }
+            #top .hero-card__chart--bars {
+              height: calc(var(--cw) * 36 / 188);
+              margin-bottom: calc(var(--cw) * 20 / 188);
+              gap: calc(var(--cw) * 6 / 188);
+            }
+            #top .hero-card__chart--wave {
+              height: calc(var(--cw) * 56 / 188);
+              margin-left: calc(var(--cw) * -20 / 188);
+              margin-right: calc(var(--cw) * -20 / 188);
+            }
+          }
+        }
+
       `}</style>
 
       {/* NORMAL FLOW, in stacking order: copy slot, then device slot. The two
@@ -1537,7 +1785,7 @@ function SimpleHero() {
           {/* ── stage 4: the close. Overlaid on the intro's box, so neither
              changes the section's height. ──────────────────────────────── */}
           <div
-            className="absolute inset-x-0 top-[76px] z-20 px-6 text-center"
+            className="absolute inset-x-0 top-[76px] z-20 hidden px-6 text-center min-[601px]:block"
             style={{
               opacity: opFinal,
               transform: `translateY(${opFinal ? 0 : 14}px)`,
@@ -1578,7 +1826,7 @@ function SimpleHero() {
             the buttons it was protecting are invisible by then anyway. The
             SECTION still owns the horizontal clip at every stage. */}
         <div
-          className="relative mt-4 min-h-0 flex-1 [container-type:size]"
+          className="hero-slot relative mt-4 min-h-0 flex-1 [container-type:size]"
           style={{ overflow: stage === 0 ? 'hidden' : 'visible' }}
         >
           {/* ── the device: present at every stage, and the thing the label
@@ -1602,7 +1850,7 @@ function SimpleHero() {
              overflow goes DOWNWARD off the bottom of the viewport instead,
              which is the composition the desktop canvas has always had. */}
           <div
-            className="absolute inset-x-0 top-0 flex justify-center"
+            className="hero-lift absolute inset-x-0 top-0 flex justify-center"
             style={{
               /* Stage 0: the 4% nudge, so the phone reads as entering under the
                  copy — the same beat the canvas has. Stages 1-3: up by the
@@ -1722,7 +1970,7 @@ function SimpleHero() {
               {CARD_GROUPS.map((group, g) => (
                 <div
                   key={g}
-                  className="pointer-events-none absolute inset-0 hidden min-[601px]:block"
+                  className="hero-flanks pointer-events-none absolute inset-0"
                   style={{
                     opacity: op[g],
                     transition: 'opacity 0.35s ease',
@@ -1731,7 +1979,7 @@ function SimpleHero() {
                   {[0, 1].map((i) => (
                     <div
                       key={group[i].title}
-                      className={cn('absolute', op[g] ? 'pointer-events-auto' : 'pointer-events-none')}
+                      className={cn('hero-flank', `hero-flank--${i}`, 'absolute', op[g] ? 'pointer-events-auto' : 'pointer-events-none')}
                       style={{
                         width: HERO_CARD_W,
                         /* The left card's right edge stays 0.06 x --dw off the
@@ -1745,9 +1993,69 @@ function SimpleHero() {
                       <GlassCard card={group[i]} floatDuration={FLOAT_DURATIONS[i]} />
                     </div>
                   ))}
+
+                  {/* Cards 2 and 3 — the RIGHT column, phone only.
+                      601-1024 keeps the two-card pair above and these stay
+                      display:none, so the tablet range is untouched. Same
+                      component, same group, same `op[g]` fade. */}
+                  {[2, 3].map((i) => (
+                    <div
+                      key={group[i].title}
+                      className={cn('hero-flank', `hero-flank--${i}`, 'absolute', op[g] ? 'pointer-events-auto' : 'pointer-events-none')}
+                      style={{
+                        transform: `translateY(${op[g] ? 0 : 12}px)`,
+                        transition: fade,
+                      }}
+                    >
+                      <GlassCard card={group[i]} floatDuration={FLOAT_DURATIONS[i]} />
+                    </div>
+                  ))}
                 </div>
               ))}
             </div>
+          </div>
+        </div>
+
+        {/* ── stage 4, the close — PHONE ONLY, and below the device ──────────
+            Above 600px this is the overlaid block up in the copy slot, which
+            is unchanged. Below it, the close belongs under the phone, which is
+            the order the desktop canvas has always had: device, headline,
+            sub-line, call to action. It used to render ABOVE the device here
+            purely because it shared the intro's box.
+
+            Anchored to the BOTTOM of the layout box rather than placed in
+            flow. The device is 268px wide on a 390 viewport and its frame runs
+            past the bottom edge by design, so a block in normal flow after it
+            would start off screen. Bottom-anchoring puts the close where it
+            can always be read, and the stage-4 transform below lifts the
+            device clear of it.
+
+            Reads HERO_CLOSE, the same constant the desktop close reads. */}
+        <div
+          className="hero-close-phone absolute inset-x-0 bottom-0 z-20 px-6 pb-7 text-center min-[601px]:hidden"
+          style={{
+            opacity: opFinal,
+            transform: `translateY(${opFinal ? 0 : 14}px)`,
+            transition: fade,
+            pointerEvents: opFinal ? 'auto' : 'none',
+          }}
+        >
+          <h2
+            className="mx-auto max-w-[16ch] text-[clamp(1.7rem,1.1rem+1.8vw,2.6rem)] leading-[1.1] tracking-[-0.03em]"
+            style={{ fontWeight: 600 }}
+          >
+            {HERO_CLOSE.headline[0]} {HERO_CLOSE.headline[1]}
+          </h2>
+          <p
+            className="mx-auto mt-3 max-w-[26rem] text-[clamp(0.9rem,0.85rem+0.3vw,1.0625rem)] leading-[1.55]"
+            style={{ color: 'var(--color-ink-soft)' }}
+          >
+            {HERO_CLOSE.lead}
+          </p>
+          <div className="mt-5 flex justify-center">
+            <Button href="#download" size="lg" className="hero-cta">
+              {HERO_CLOSE.primary}
+            </Button>
           </div>
         </div>
       </div>
