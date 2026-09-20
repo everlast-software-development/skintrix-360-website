@@ -37,10 +37,25 @@ import { SITE } from '@/lib/site'
  * once on the footer element and read by both. A taller reserve than the fixed
  * child leaves a gap at the end of the reveal; a shorter one ends it early.
  *
- * The reserve is measured against the real content height at every breakpoint
- * — the inner `overflow-y-auto` is a safety net for a viewport shorter than
- * the reserve, not the plan. Anything that makes this column taller has to be
- * paid for in `--footer-h`, or the clip-path cuts the bottom of the wordmark.
+ * THE RESERVE FITS THE VIEWPORT, AND THE BAND ABSORBS THE DIFFERENCE.
+ *
+ * The reserve cannot be a plain pixel number. A `position: fixed` child can
+ * never be taller than the viewport it is fixed to, so a reserve taller than
+ * the screen leaves nothing to reveal: the footer is already past the bottom
+ * edge before the scroll reaches it. That is the whole of the bug this
+ * replaced — on a laptop whose viewport came out around 630 CSS px the reveal
+ * did not engage at all, and zooming out to 80% (which buys CSS pixels) made
+ * it work again.
+ *
+ * So the reserve is viewport-relative with a cap, not a number with a
+ * viewport-relative escape hatch:
+ *
+ *   --footer-h: min(<cap>, 88svh)
+ *
+ * On a tall viewport the cap wins and nothing about today's footer changes.
+ * On a short one `88svh` wins, the reserve shrinks to fit, and the reveal
+ * still has its full run — plus 12svh of the outgoing section still showing at
+ * the end, which is what makes it read as a reveal.
  *
  * THE REVEAL RUNS AT EVERY WIDTH — and the unit is why it can.
  *
@@ -59,21 +74,34 @@ import { SITE } from '@/lib/site'
  * Both halves read the same expression, so the reserve and the fixed child are
  * identical by construction:
  *
- *   --footer-h: min(100svh, <cap>)
+ *   --footer-h: min(<cap>, 88svh)
  *
- * The `min()` is the fit half of the old problem, solved rather than avoided.
  * The cap is the measured content height plus slack (760 / 820 / 880 across
- * the three tiers, against content of 683 / 753 / 793). `min()` then clamps
- * that to the viewport, which guarantees two things at once: the footer is
- * never taller than the screen, so the reveal always completes with no gap at
- * either end; and `calc(100svh - var(--footer-h))` is never negative, so the
- * sticky child cannot be pushed off its own track.
+ * the three tiers). `min()` then clamps that to 88% of the small viewport,
+ * which guarantees two things at once: the footer is never taller than the
+ * screen, so the reveal always completes with no gap at either end; and
+ * `calc(100svh - var(--footer-h))` is never negative, so the sticky child
+ * cannot be pushed off its own track.
  *
- * On a viewport SHORTER than the content — a 375x667 or 320x568 phone, a
- * 1440x700 desktop window — no fixed layer can show all of it, so the footer
- * measures that case and drops into normal flow instead (`data-reveal="flow"`,
- * see `fits` in the component). The inner `overflow-y-auto` used to take up
- * the remainder there, which is what cut the wordmark off.
+ * THE CONSEQUENCE, AND WHERE IT IS PAID
+ *
+ * A shorter reserve can be shorter than the footer's natural content (761px at
+ * ≥1025px wide, 735px below it). The column would then overflow and the inner
+ * `overflow-y-auto` would become a real scrollbar inside the footer.
+ *
+ * It does not, because the column is a flex column in which EVERYTHING above
+ * the wordmark is `shrink-0` and the wordmark band (plus the 52px spacer over
+ * it, which is a flex item rather than a margin for exactly this reason) is
+ * not. Flexbox hands the whole deficit to those two, split in proportion to
+ * their heights, so the column always resolves to exactly the reserve. The
+ * band is the only part of this footer that can give, and it gives.
+ *
+ * The wordmark's type size is scaled by the same ratio (see `wordmarkSize`),
+ * so it is never clipped by a band that has shrunk underneath it.
+ *
+ * The floor is the band reaching zero, which happens at a reserve of 449px —
+ * a viewport about 510px tall. `overflow-y-auto` remains the safety net below
+ * that and nowhere above it.
  *
  * `FaSnapchatGhost` does not exist in react-icons/fa6 — Font Awesome renamed
  * it to `FaSnapchat` in v6. Same glyph, already installed.
@@ -303,71 +331,71 @@ export function Footer() {
   const xl = useMediaQuery('(min-width: 1281px)')
   const lg = useMediaQuery('(min-width: 1025px)')
   const md = useMediaQuery('(min-width: 769px)')
-  const wordmarkSize = xl ? 190 : lg ? 150 : md ? 100 : 56
 
   /**
-   * Whether the reveal FITS. A fixed layer can never be taller than the
-   * viewport it is fixed to — `min(100svh, …)` below guarantees that — so when
-   * the content is taller than the screen (735px of it on a 667px or 568px
-   * phone, or a short desktop window) the reserve came out shorter than the
-   * content and the bottom of the footer was cut. Raising the cap does not
-   * help: `100svh` is the side of the `min()` that wins.
+   * The wordmark rides the band DOWN.
    *
-   * So on those viewports the footer drops the reveal and sits in normal flow,
-   * where its reserve IS its content height and nothing can be cut. Everywhere
-   * the content fits, the reveal is untouched.
+   * `FlickeringGrid` fits its type to the canvas WIDTH and nothing else — it
+   * draws at `textBaseline: middle` on the band's vertical centre, so a band
+   * shorter than the cap height clips the letters top and bottom. Since the
+   * band is now the column's shock absorber it can come out at any height from
+   * its tier maximum down to nearly nothing, and a fixed 190px wordmark inside
+   * a 66px band would be sliced through the middle.
    *
-   * `column.scrollHeight` is the content height in both modes (in the reveal
-   * it is at least the reserve, never less than the content), so toggling the
-   * mode cannot change the answer and the observer cannot oscillate.
+   * So the size is the tier size scaled by how much of the band survived. The
+   * ratio between type and band is therefore identical at every viewport
+   * height — the wordmark is the same design, smaller — which is both why it
+   * cannot be cut and why the shrinking reads as intentional.
+   *
+   * `bandH` is null for the first paint only; the tier maximum is the right
+   * answer there because the band starts at its maximum and only ever shrinks.
    */
-  const columnRef = useRef<HTMLDivElement>(null)
-  const [fits, setFits] = useState(true)
+  const bandRef = useRef<HTMLDivElement>(null)
+  const [bandH, setBandH] = useState<number | null>(null)
 
   useEffect(() => {
-    const column = columnRef.current
-    if (!column) return
-    const probe = document.createElement('div')
-    probe.style.cssText = 'position:fixed;top:0;height:100svh;width:0;visibility:hidden;pointer-events:none'
-    const check = () => {
-      document.body.appendChild(probe)
-      const svh = probe.getBoundingClientRect().height || window.innerHeight
-      probe.remove()
-      setFits(column.scrollHeight <= Math.ceil(svh) + 1)
-    }
-    check()
-    const ro = new ResizeObserver(check)
-    ro.observe(column)
-    window.addEventListener('resize', check)
-    return () => {
-      ro.disconnect()
-      window.removeEventListener('resize', check)
-    }
+    const el = bandRef.current
+    if (!el) return
+    const ro = new ResizeObserver(([entry]) => {
+      const h = entry.contentRect.height
+      setBandH((prev) => (prev !== null && Math.abs(prev - h) < 0.5 ? prev : h))
+    })
+    ro.observe(el)
+    return () => ro.disconnect()
   }, [])
+
+  const bandMax = md ? 260 : 170
+  const tierSize = xl ? 190 : lg ? 150 : md ? 100 : 56
+  const wordmarkSize = Math.max(
+    8,
+    Math.round(tierSize * Math.min(1, (bandH ?? bandMax) / bandMax)),
+  )
 
   return (
     <footer
-      /* `--footer-h` is measured, not chosen, and lives here and nowhere else
-         — both heights below read it and they must never diverge.
+      /* `--footer-h` lives here and nowhere else — both heights below read
+         it and they must never diverge.
 
-         `data-reveal="flow"` is the no-fit case above: every height goes back
-         to auto and the fixed/sticky layers become ordinary blocks. */
-      data-reveal={fits ? undefined : 'flow'}
-      className="group/footer relative h-[var(--footer-h)] w-full [--footer-h:min(100svh,760px)] [clip-path:polygon(0%_0,100%_0%,100%_100%,0_100%)] min-[769px]:[--footer-h:min(100svh,820px)] min-[1025px]:[--footer-h:min(100svh,880px)] data-[reveal=flow]:h-auto"
+         `88svh` is the floor-free guarantee: the reserve is never taller than
+         the viewport, at any viewport, so the reveal always has room. The
+         12svh it leaves over is what the outgoing section still occupies at
+         the end of the scroll, which is what makes the arrival read as a
+         reveal rather than a jump cut. */
+      className="group/footer relative h-[var(--footer-h)] w-full [--footer-h:min(760px,88svh)] [clip-path:polygon(0%_0,100%_0%,100%_100%,0_100%)] min-[769px]:[--footer-h:min(820px,88svh)] min-[1025px]:[--footer-h:min(880px,88svh)]"
       style={{ background: C.ground }}
     >
       <div
-        className="fixed bottom-0 h-[var(--footer-h)] w-full group-data-[reveal=flow]/footer:static group-data-[reveal=flow]/footer:h-auto"
+        className="fixed bottom-0 h-[var(--footer-h)] w-full"
         style={{ background: C.ground }}
       >
-        <div className="sticky top-[calc(100svh-var(--footer-h))] h-full overflow-y-auto group-data-[reveal=flow]/footer:static group-data-[reveal=flow]/footer:h-auto group-data-[reveal=flow]/footer:overflow-visible">
+        <div className="sticky top-[calc(100svh-var(--footer-h))] h-full overflow-y-auto">
           {/* `flex-[1_0_auto]` on the column, not `flex-1`: grow into any slack
               the reserve leaves over, but never compress below the content's
               natural height. That slack lands above the band, which keeps the
               band flush with the very bottom edge. With the reveal off,
               `h-full` resolves against an auto-height parent, so it means
               nothing and the column is simply as tall as its content. */}
-          <div ref={columnRef} className="flex h-full flex-col">
+          <div className="flex h-full flex-col">
             <div className="mx-auto flex w-full max-w-[900px] flex-[1_0_auto] flex-col items-center px-6 pt-14 text-center">
               {/* ── logo ─────────────────────────────────────────────────── */}
               <a
@@ -497,7 +525,7 @@ export function Footer() {
                 stays on the FIRST column only, so the reserve's slack still
                 lands above the grid and the wordmark band stays flush with the
                 footer's bottom edge. */}
-            <div className="mx-auto flex w-full max-w-[900px] flex-col items-center px-6 text-center">
+            <div className="mx-auto flex w-full max-w-[900px] shrink-0 flex-col items-center px-6 text-center">
 
               {/* ── legal ────────────────────────────────────────────────── */}
               <div className="type-small mt-10 flex flex-wrap items-center justify-center gap-x-[30px] gap-y-2">
@@ -508,6 +536,13 @@ export function Footer() {
               </div>
             </div>
 
+            {/* The band's own air, as a FLEX ITEM rather than a margin — a
+                margin cannot shrink, and this has to. It carries `shrink` and
+                the same basis-weighted share of any deficit as the band below
+                it, so the gap closes in step with the band instead of holding
+                52px open while the wordmark is squeezed to nothing. */}
+            <div aria-hidden="true" className="h-[52px] w-full min-h-0 shrink" />
+
             {/* ── the flickering wordmark ────────────────────────────────
                 Flush with the bottom edge — no padding under it. The overlay
                 fades the top of the field into the ground so the dots emerge
@@ -516,10 +551,29 @@ export function Footer() {
                 The gradient's stops are `rgb(245 246 253 / 0)`, not
                 `transparent`: `transparent` is transparent BLACK, and
                 interpolating from it greys the middle of the ramp into a
-                visible smudge. */}
+                visible smudge.
+
+                THIS IS THE ONLY THING IN THE COLUMN THAT GIVES. Every sibling
+                above is `shrink-0` (or `flex-[1_0_auto]`, which is grow-only),
+                so when the reserve comes out shorter than the natural content
+                — every viewport under ~865px tall — flexbox takes the whole
+                deficit out of this band and the spacer above it, and the
+                column still fits its box exactly. That is what keeps the inner
+                `overflow-y-auto` from ever becoming a real scrollbar.
+
+                `min-h-0` is not optional: a flex item's automatic minimum size
+                is its min-content height, and the canvas inside reports the
+                height it was LAST drawn at, which would ratchet the band open
+                again and refuse to shrink.
+
+                `overflow-hidden` covers the single frame between the band
+                resizing and the canvas's ResizeObserver catching up. It is
+                safe here — the rule about clipping ancestors applies above the
+                `position: fixed` layer, and this is well below it. */}
             <div
+              ref={bandRef}
               aria-hidden="true"
-              className="relative mt-[52px] h-[170px] w-full shrink-0 min-[769px]:h-[260px]"
+              className="relative h-[170px] w-full min-h-0 shrink overflow-hidden min-[769px]:h-[260px]"
             >
               <FlickeringGrid
                 squareSize={2}
