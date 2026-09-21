@@ -63,6 +63,91 @@ const PIN_H = 1250
  */
 const HEADER_CLEARANCE = 20
 
+/**
+ * How wide the canvas's INK actually is, measured rather than assumed.
+ *
+ * The canvas is authored 1840 wide, but nothing is drawn near its edges. The
+ * four cards are the widest thing on it and they span x=370 to x=1480 — 1110
+ * canvas pixels, centred within 5px of the canvas's own midpoint. Everything
+ * else is narrower: the h1 runs 435–1405, the closing h2 508–1332, the phone
+ * 755–1085. So 365px of each side of the canvas is permanently empty.
+ *
+ * THAT MARGIN IS WHY THE CANVAS USED TO BE UNUSABLE BELOW 1025px. Dividing
+ * the viewport by 1840 pays full price for 730px of nothing: at 800 it gives
+ * a scale of 0.435, which renders a 9.6px card title and a 24px button and is
+ * the reason this component was cut off at 1025 and a stacked layout used
+ * below it. Dividing by the ink instead gives 0.688 at the same width — the
+ * composition arranged exactly as designed, at a size you can read — and the
+ * empty margin simply overflows the viewport, where the stage's own
+ * `overflow-hidden` clips it. Clipping nothing is free.
+ *
+ * ONLY BELOW 1025px. Above it the viewport is wide enough that the full
+ * canvas fits at a comfortable scale, and dividing by the ink there would
+ * blow the composition up past the frame it was designed in. Desktop keeps
+ * dividing by `CANVAS_W`, unchanged.
+ */
+const CONTENT_W = 1110
+
+/** Real pixels of guaranteed margin either side of `CONTENT_W`, so the outer
+ *  edge of a corner card is never flush against the screen. 18 is ~24 canvas
+ *  px at portrait-tablet scale, which reads as the same inset the cards have
+ *  from each other. */
+const CONTENT_GUTTER = 18
+
+/**
+ * The width whose desktop rendering is the reference look, and the scale it
+ * produces — 1280 / 1840 = 0.696.
+ *
+ * FITTING THE INK ALONE OVERSHOOTS, and this is the correction. Dividing the
+ * viewport by `CONTENT_W` makes the composition fill the width, which is right
+ * at 800 where the alternative is illegible, and wrong by 1000 where it makes
+ * the composition proportionally MUCH bigger than desktop ever renders it.
+ * Measured at 1000px against the 1280 reference:
+ *
+ *                            1280 desktop     1000, ink-fit     1000, capped
+ *   closing h2 width           45% of vw        72% of vw         57% of vw
+ *   its side margins           28% each         14% each          21% each
+ *   phone width                18% of vw        29% of vw         23% of vw
+ *
+ * The middle column is the reported fault: a heading running to the edges and
+ * a phone taking too much room. The cap is what the right-hand column is.
+ *
+ * WHY A FLOOR RATHER THAN A CEILING, read the other way round: the tablet uses
+ * the DESKTOP formula, `viewport / CANVAS_W`, held to a minimum of whatever
+ * that formula gives at 1280. Above 1280 the two are the same expression, so
+ * a portrait viewport wider than that is rendered exactly as desktop renders
+ * it and the paths converge rather than meeting at a step.
+ */
+const REFERENCE_W = 1280
+const REFERENCE_SCALE = REFERENCE_W / CANVAS_W
+
+/**
+ * One scale for both paths, so there is no width at which they disagree.
+ *
+ * THE BUG THIS REPLACES WAS A CLIFF AT THE BREAKPOINT. The tablet path fitted
+ * the ink and the desktop path fitted the canvas, and nothing tied them
+ * together: 1024px rendered at 0.890 and 1025px at 0.557, a 37% collapse
+ * across one pixel. A portrait tablet reporting a width just over the line
+ * fell into the desktop branch, where the pinned box is `PIN_H` tall and
+ * nothing centres it — 716px of hero in a 1600px viewport, with the next
+ * section showing underneath for the whole pin. That is the untreated gap.
+ *
+ * Now every case is one expression, `min(room, max(desktop, reference))`:
+ *
+ *   - `desktop` is the plain desktop formula and wins outright above 1280.
+ *   - `reference` floors it, so 769-1280 renders at the 1280 proportions
+ *     instead of shrinking with the viewport into unreadable type.
+ *   - `room` is the hard ceiling — the widest the four corner cards fit in —
+ *     and only binds below ~1150px, where it takes over from the floor
+ *     continuously rather than stepping.
+ */
+function fitScale(clientWidth: number, fullCanvas: boolean) {
+  const desktop = clientWidth / CANVAS_W
+  if (fullCanvas) return desktop
+  const room = (clientWidth - 2 * CONTENT_GUTTER) / CONTENT_W
+  return Math.min(room, Math.max(desktop, REFERENCE_SCALE))
+}
+
 const EASE_TRANSFORM = 'cubic-bezier(0.4,0,0.2,1)'
 
 /** floaty — literal from the design's own <style> block. */
@@ -357,26 +442,29 @@ function useViewportHeight() {
   return vh
 }
 
-/** Width-driven only — the canvas never shrinks to fit the viewport's height. */
-function useCanvasScale(ref: RefObject<HTMLElement | null>, canvasWidth: number) {
+/** Width-driven only — the canvas never shrinks to fit the viewport's height.
+ *  `fitScale` above is the whole of the sizing rule; this only measures. */
+function useCanvasScale(ref: RefObject<HTMLElement | null>, fullCanvas: boolean) {
   /* `clientWidth`, not `window.innerWidth`: innerWidth INCLUDES the vertical
      scrollbar, so seeding from it scales the canvas ~1% too large for one
      paint and the composition lands slightly off to the right until the
      ResizeObserver below corrects it. clientWidth is the width the canvas
      actually gets. */
-  const [scale, setScale] = useState(() => document.documentElement.clientWidth / canvasWidth)
+  const [scale, setScale] = useState(() =>
+    fitScale(document.documentElement.clientWidth, fullCanvas),
+  )
 
   useEffect(() => {
     const el = ref.current
     if (!el) return
     const measure = () => {
-      if (el.clientWidth) setScale(el.clientWidth / canvasWidth)
+      if (el.clientWidth) setScale(fitScale(el.clientWidth, fullCanvas))
     }
     measure()
     const ro = new ResizeObserver(measure)
     ro.observe(el)
     return () => ro.disconnect()
-  }, [ref, canvasWidth])
+  }, [ref, fullCanvas])
 
   return scale
 }
@@ -384,25 +472,64 @@ function useCanvasScale(ref: RefObject<HTMLElement | null>, canvasWidth: number)
 export function Hero() {
   const reduced = useReducedMotion()
 
-  // The desktop canvas is authored at 1840px and scales uniformly, so at
-  // phone widths it lands near 0.2x — the whole composition rendered at a
-  // fifth size. Below the cut the stacked composition is used instead, which
-  // is designed for that width rather than shrunk into it.
-  //
-  // 1025, not 1024: every tier in the hero — the pin budget, the card count,
-  // the CTA sizes — splits at 1025, and ScrollHero's own matchMedia already
-  // did. At exactly 1024 the canvas scaled to 0.556 and rendered 29px-tall
-  // buttons, which is the width the stacked layout is for.
-  const isDesktop = useMediaQuery('(min-width: 1025px)')
+  /* THE CUT IS NOW 769, NOT 1025.
+     `ScrollHero` is the four-corner canvas: cards at the four corners of the
+     face, connector lines from each to a point on it. It used to stop at 1025
+     because scaling its 1840px canvas by viewport WIDTH made it illegible
+     below that — at 1024 it came out at 0.556 and rendered 29px-tall buttons.
+
+     That was a consequence of dividing by 1840 when only 1110 of it carries
+     any ink; see `CONTENT_W`. Fitting the ink instead, a 800px portrait
+     tablet renders the same composition at 0.688 — a 15px card title and a
+     52px headline — so the arrangement no longer has to be given up to stay
+     readable, and tablets get the desktop hero rather than an approximation
+     of it.
+
+     769 because that is where this file's phone tier ends. At 768 and below
+     the four-corner arrangement genuinely does not fit — two cards either
+     side of a legible phone needs ~316px plus the device — and `SimpleHero`'s
+     2x2-under-the-phone layout stays exactly as it is. */
+  const isCanvas = useMediaQuery('(min-width: 769px)')
+
+  /* ── WHICH SIZING RULE, AND WHY ORIENTATION IS PART OF IT ──────────────
+     `fullCanvas` is the untouched desktop behaviour: fit the whole 1840
+     canvas, box the pin at `PIN_H`, let `restingShift` centre what shows.
+     That rule assumes the pinned box is TALLER than the viewport, which is
+     true of every landscape screen and false of every portrait one.
+
+     It used to be selected on width alone, and a portrait tablet 1025px wide
+     therefore got it: a 716px hero in a 1600px viewport, the next section
+     visible underneath for the whole pin, and a 37% size cliff against the
+     1024px next to it. A width test cannot tell a 1200px-wide tablet held
+     upright from a 1200px-wide browser window, and those two want opposite
+     things.
+
+     `(orientation: landscape)` is the part that can. Every real desktop is
+     landscape, so desktop keeps the desktop rule at every width; a portrait
+     viewport takes the tablet rule however wide it is, which is what routes
+     the Redmi Pad 2 correctly whether it reports 800, 1000, 1024 or 1200.
+     Above 1280 the two rules produce the same scale anyway (see `fitScale`),
+     so the choice stops mattering exactly where it stops being meaningful. */
+  const isDesktopLandscape = useMediaQuery('(min-width: 1025px) and (orientation: landscape)')
 
   if (reduced) return <SimpleHero />
-  if (isDesktop) return <ScrollHero />
+  if (isCanvas) return <ScrollHero fullCanvas={isDesktopLandscape} />
   return <SimpleHero />
 }
 
-function ScrollHero() {
+/**
+ * `fullCanvas` — fit the whole 1840px canvas (desktop, >=1025px) or just the
+ * 1110px of it that carries ink (portrait and landscape tablet, 769-1024px).
+ *
+ * It is the ONLY difference between the two, and it changes one number: the
+ * scale. Every absolute position, the card slots, the connector lines, the
+ * stage sequence and the pin are one shared set of code rendering one shared
+ * canvas, which is what makes the tablet identical to desktop rather than a
+ * second implementation that resembles it.
+ */
+function ScrollHero({ fullCanvas }: { fullCanvas: boolean }) {
   const trackRef = useRef<HTMLElement>(null)
-  const scale = useCanvasScale(trackRef, CANVAS_W)
+  const scale = useCanvasScale(trackRef, fullCanvas)
   const viewportH = useViewportHeight()
   const [stage, setStage] = useState(0)
 
@@ -563,9 +690,34 @@ function ScrollHero() {
         /* `sticky` is gone: GSAP pins the section above, and two pinning
            mechanisms on the same subtree fight each other. */
         className="flex justify-center overflow-hidden"
+        /* ── HOW TALL THE PINNED BOX IS, AND WHERE THE CANVAS SITS IN IT ──
+           On desktop the canvas window (`PIN_H` scaled) is always TALLER than
+           the viewport — 998px against 900 at 1440 — so the box is exactly
+           the window, the canvas is flush to the top under the header
+           clearance, and `restingShift` is what centres the composition in
+           the part of it you can see. Both expressions below collapse to
+           precisely that when the window is the taller of the two, which is
+           every desktop size, so desktop is untouched.
+
+           A PORTRAIT TABLET INVERTS IT. At 800x1340 the window is 880px in a
+           1340px viewport, and a pinned section shorter than the viewport
+           leaves the next section showing underneath it for the whole pin —
+           460px of "What it does" sitting under the hero. So the box takes
+           the viewport's full height, and the canvas is centred in it rather
+           than parked at the top with all the slack below.
+
+           `100svh` and not `viewportH`, even though `viewportH` is right
+           here: it is read from `window.innerHeight`, which CHANGES when a
+           tablet's address bar collapses. That would resize the pinned
+           element mid-pin and make ScrollTrigger's cached geometry wrong.
+           `svh` is the small viewport and does not move. */
         style={{
-          height: stageHeight + HEADER_CLEARANCE,
-          paddingTop: HEADER_CLEARANCE,
+          height: fullCanvas
+            ? stageHeight + HEADER_CLEARANCE
+            : `max(${stageHeight + HEADER_CLEARANCE}px, 100svh)`,
+          paddingTop: fullCanvas
+            ? HEADER_CLEARANCE
+            : `calc(${HEADER_CLEARANCE}px + max(0px, (100svh - ${stageHeight + HEADER_CLEARANCE}px) / 2))`,
         }}
       >
         <section
@@ -770,7 +922,25 @@ const TABLET_SLOTS: { left: number; width: number }[] = [
 
 export function TabletHero() {
   const trackRef = useRef<HTMLElement>(null)
-  const scale = useCanvasScale(trackRef, TABLET_CANVAS_W)
+  /* Its own canvas width, not the hero's — `useCanvasScale` now carries the
+     shared canvas's sizing rule, which has nothing to do with this one.
+     NOTHING IMPORTS THIS COMPONENT; it is kept only because the file has kept
+     it, and the tablet range it was written for is now served by `ScrollHero`.
+     If it is still unreferenced next time this file is opened, delete it. */
+  const [scale, setScale] = useState(
+    () => document.documentElement.clientWidth / TABLET_CANVAS_W,
+  )
+  useEffect(() => {
+    const el = trackRef.current
+    if (!el) return
+    const measure = () => {
+      if (el.clientWidth) setScale(el.clientWidth / TABLET_CANVAS_W)
+    }
+    measure()
+    const ro = new ResizeObserver(measure)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
   const { scrollYProgress } = useScroll({
     target: trackRef,
     offset: ['start start', 'end end'],
@@ -1570,9 +1740,197 @@ function SimpleHero() {
              Sizing off WIDTH instead lands the film at about 1.16x the
              viewport — past the edges, clipped by the section, the way
              desktop's 751px film sits inside a 1440px frame without
-             dominating it. 20svh is the short-viewport rail. */
-          #top .hero-dev { --dw: clamp(120px, min(40cqw, 20svh), 200px); margin-top: 0 !important; }
+             dominating it.
+
+             THE SECOND RAIL USED TO BE '20svh' AND IT WAS THE WRONG ONE. A
+             flat share of the viewport knows nothing about what else is in
+             the stack, so on a short screen the phone stayed big and the
+             composition simply ran out the top. The whole expression now
+             lives on '#top' — see the block below — because the closing
+             block needs the same number and cannot see inside this slot.
+
+             'inherit', not a second copy of it. A custom property set on the
+             element beats one inherited from an ancestor, so without this
+             declaration '.hero-dev' would keep the 769-1024 tier it is given
+             further up the sheet and ignore '#top' entirely. */
+          #top .hero-dev { --dw: inherit; margin-top: 0 !important; }
           #top .hero-slot { margin-top: 8px !important; overflow: visible !important; }
+        }
+
+        /* =====================================================================
+           WHAT HAS TO FIT, AND IN WHAT
+           =====================================================================
+
+           Declared on '#top' rather than on '.hero-dev' because BOTH halves
+           of the phone layout need these: the device slot reads them to size
+           and place the phone, and the closing block — a sibling of the slot,
+           so it cannot see anything set inside it — reads them to place
+           itself at stage 4. One set of numbers, two consumers.
+
+           NOTHING HERE DEPENDS ON '--dw', which is what makes it safe for
+           '--dw' to depend on it. The grid's footprint comes from the
+           viewport's WIDTH alone, so the chain runs
+           'grid-w -> grid-h -> dev-cap -> dw' with no cycle.
+
+           'vw' and not 'cqw': '#top' is not inside the slot's container, so
+           container units here would resolve against the viewport anyway.
+           On a phone there is no persistent scrollbar so the two agree, and
+           at the one width where a scrollbar could make them differ — a
+           600px desktop window — both '--grid-w' and '--dw' are already
+           held by their own caps, so the difference is absorbed. */
+        @media (max-width: 600px) {
+          #top {
+            --card-gap: 10px;
+            --grid-top: 14px;
+
+            /* The band the composition lives in: the viewport less the
+               fixed header and the home indicator. */
+            --header: calc(72px + env(safe-area-inset-top, 0px));
+            --safe-b: env(safe-area-inset-bottom, 0px);
+            --band: calc(100svh - var(--header) - var(--safe-b));
+            /* Breathing room that is never eaten: 16px above the hair and
+               16px below the bottom row of cards. */
+            --air: 32px;
+
+            /* ── STEP 1: WHAT THE GRID WANTS ──────────────────────────────
+               From the viewport's WIDTH alone, so nothing here depends on
+               the device and the chain below cannot become circular. Capped
+               at 296px — it was 340 — so the 2x2 is a compact block under
+               the phone rather than the widest thing on the screen; 16px of
+               gutter either side on anything narrower than that.
+
+               296 also means the card is the SAME SIZE at 360, 390 and 430:
+               '100vw - 32px' is 328, 358 and 398 there, so the cap wins at
+               all three and a column is 143px at every one of them.
+
+               A grid of width W is always 0.895 x W + 5.05px tall. That
+               constant is not a guess and not a shape preference — it is the
+               card's own content, added up, and '--card-ratio' below is
+               where the addition is written out. A column is (W - 10) / 2
+               and there are two rows, so
+               2 x (0.895 x (W - 10) / 2 + 2) + 10 folds to the expression here,
+               the 2 being the card border '--card-h' accounts for.
+
+               KEEP THE TWO IN STEP. This is the one place the ratio is
+               restated as a literal, because '--card-h' cannot be used: it
+               depends on '--cw', which depends on '--grid-w', which depends
+               on this. Breaking that cycle is the whole reason step 1 exists
+               and the reason the number appears twice. */
+            --grid-w-want: min(calc(100vw - 32px), 296px);
+            --grid-h-want: calc(var(--grid-w-want) * 0.895 + 5.05px);
+
+            /* ── STEP 2: THE DEVICE GETS WHAT IS LEFT ─────────────────────
+               What has to fit between the header and the bottom of the
+               screen is the FILM's top edge down to the grid's bottom:
+
+                 0.382 x --dw   the film's overhang above the device
+               + 2.0316 x --dw  the device itself (1416/697, its own aspect)
+               + --grid-top
+               + --grid-h
+               = --band - --air
+
+               2.4136 is the sum of the two --dw terms, so solving for --dw
+               gives the largest device whose WHOLE group still fits.
+
+               At 360x800, 390x844 and 430x932 the width rail is the tighter
+               of the two and the device is the size it has always been. The
+               height cap only binds on a short viewport — and there it
+               shrinks the phone, which is what used to be pushed up under
+               the header instead.
+
+               DECLARED HERE AND NOWHERE ELSE. The closing block is a sibling
+               of the device slot and cannot read anything set inside it, so
+               both halves of the phone layout take '--dw' from this one
+               declaration and inherit it down; '.hero-dev' says
+               '--dw: inherit' purely to stop its own 768px tier winning by
+               being set on the element. '40vw' rather than '40cqw' because
+               '#top' has no query container above it, so container units
+               here would resolve against the viewport anyway — and above a
+               500px viewport both forms are held at the 200px cap, while
+               below it a phone has no persistent scrollbar. */
+            --dev-cap: calc((var(--band) - var(--air) - var(--grid-top) - var(--grid-h-want)) / 2.4136);
+            --dw: clamp(112px, min(40vw, var(--dev-cap)), 200px);
+
+            /* ── STEP 3: AND THE GRID TAKES WHAT IS LEFT OF THAT ──────────
+               The device has a FLOOR — below about 112px the frame stops
+               reading as a phone — so on a short screen step 2 hands back a
+               device bigger than the leftover height. Something has to give,
+               and it is the grid: this is step 2 read backwards, solved for
+               the grid's width instead.
+
+               Without it, 375x667 overflowed the bottom of the screen by
+               11px, 360x640 by 19 and 320x568 by 35 — the cards ran off the
+               fold. On a phone tall enough for the floor not to bind, which
+               is every one of the three target widths, this cap is slack and
+               '--grid-w' is exactly '--grid-w-want'. */
+            --grid-cap: calc((var(--band) - var(--air) - var(--grid-top)
+                        - 2.4136 * var(--dw) - 5.05px) / 0.895);
+            --grid-w: min(var(--grid-w-want), var(--grid-cap));
+            --cw: calc((var(--grid-w) - var(--card-gap)) / 2);
+
+            /* ── THE CARD, ADDED UP RATHER THAN DIALLED IN ────────────────
+               Every card is the same size because its height is not measured
+               from its own content — it is the SUM of six reserves, and all
+               six are shares of the column width, so the total is the same
+               number for all twelve cards in all three stages. Change a font
+               size here and the card grows to suit it; nothing has to be
+               re-tuned by eye afterwards.
+
+               WHY RESERVES AND NOT CONTENT. The boxes were already a uniform
+               165x161.7 — 'grid-auto-rows' saw to that — but the cards still
+               did not LOOK the same, which is what was actually being
+               reported. "Skin Type" has a one-line title and "Doctor
+               Consultation" a two-line one, so the meta line and the chart
+               under them sat at different heights from card to card, and in
+               the worst case ("Doctor Consultation", two-line title AND
+               two-line meta) the content came to 161.85px inside a 161.7px
+               box and the bottom of the chart was clipped.
+
+               So the title and the meta each get TWO LINES whether they use
+               them or not, and are clamped to two so a longer string can
+               never take a third. Every card now has its title on the same
+               baseline, its meta on the same baseline and its chart on the
+               same baseline, and the tallest possible card exactly fills the
+               box instead of overflowing it.
+
+               THE RATIOS ARE SHARES OF 188 — the desktop column width — so
+               they read as "what this is on desktop", the same convention
+               the type scale below uses. They are NOT desktop's values: the
+               title is 20.5/188 where desktop is 22/188 and the card is
+               0.895 x its column where it used to be 0.98, which together
+               take the card from 165x161.7 to 143x128 at 390px, a third less
+               area. The meta text barely moves (12.5 -> 14 of a smaller
+               column is 11.0px -> 10.6px) because it is the smallest type on
+               the card and was already at the floor of comfortable. */
+            --card-pad: calc(var(--cw) * 18 / 188);
+            --card-title-fs: calc(var(--cw) * 20.5 / 188);
+            --card-title-h: calc(var(--card-title-fs) * 1.06 * 2);
+            --card-title-mb: calc(var(--cw) * 11 / 188);
+            --card-meta-fs: calc(var(--cw) * 14 / 188);
+            --card-meta-h: calc(var(--card-meta-fs) * 1.35 * 2);
+            --card-meta-mb: calc(var(--cw) * 12 / 188);
+            /* ONE footprint for both chart kinds. The wave bleeds to the
+               card's bottom edge and the bars sit above a margin, so they
+               are given the same total so the two never disagree about how
+               tall a card is. */
+            --card-chart-h: calc(var(--cw) * 46 / 188);
+
+            /* 18 + 2x1.06x20.5 + 11 + 2x1.35x14 + 12 + 46 = 168.26 of 188,
+               which is the 0.895 that '--grid-h-want' above is built on, and
+               the flat 2px is the card's own 1px border top and bottom.
+
+               THE 2px IS NOT A FUDGE. Everything on this page is
+               'box-sizing: border-box', so a 128px card holds 126px of
+               content — and the six reserves above describe CONTENT. Without
+               this the sum came out 2px over the box, the chart was the only
+               item that could give (it is the one with nothing below it), and
+               flex-shrink quietly took those 2px off it: the wave rendered
+               33px instead of 35 and stopped an invisible pixel short of the
+               bottom edge. Measured, not theorised. */
+            --card-h: calc(2px + var(--card-pad) + var(--card-title-h) + var(--card-title-mb)
+                      + var(--card-meta-h) + var(--card-meta-mb) + var(--card-chart-h));
+            --grid-h: calc(2 * var(--card-h) + var(--card-gap));
+          }
         }
 
         /* =====================================================================
@@ -1621,19 +1979,26 @@ function SimpleHero() {
 
            DECLARED ON '#top', not on '.hero-dev': the closing block is a
            SIBLING of the slot, so it cannot read a variable set inside it.
-           That also rules out container units here, hence '40vw' rather than
-           the '40cqw' the device itself uses — on a phone there is no
-           persistent scrollbar, so the two agree, and this only feeds a
-           vertical offset either way. */
+           It reads the same '--dw' and '--band' the block above declares, so
+           the phone cannot be one size for stages 1-3 and another for the
+           close.
+
+           AND IT COUNTS THE FILM'S OVERHANG. '--m-group-h' used to start at
+           the DEVICE's top edge, but the film — and the hair in it — starts
+           0.382 x --dw higher, so the centring was working from a top edge
+           60px below the one you can actually see. Stage 4 had the same
+           fault stages 1-3 did, just with more room to hide it. */
         @media (max-width: 600px) {
           #top {
-            --m-dev-h: calc(clamp(120px, min(40vw, 20svh), 200px) * 2.0316);
+            --m-dev-h: calc(var(--dw) * 2.0316);
+            --m-film-over: calc(var(--dw) * 0.382);
             --m-close-h: 214px;
             --m-close-gap: 24px;
+            --m-group-h: calc(var(--m-film-over) + var(--m-dev-h)
+                        + var(--m-close-gap) + var(--m-close-h));
             /* Floored, so a very short viewport tightens the margins rather
                than pulling the phone up off the top of the screen. */
-            --m-slack: max(16px, calc((100svh - 72px - env(safe-area-inset-bottom, 0px)
-                       - var(--m-dev-h) - var(--m-close-gap) - var(--m-close-h)) / 2));
+            --m-slack: max(16px, calc((var(--band) - var(--m-group-h)) / 2));
           }
 
           #top[data-hero-stage='4'] .hero-close-phone { bottom: var(--m-slack); }
@@ -1646,22 +2011,6 @@ function SimpleHero() {
             /* 1416/697 — the frame's own aspect, so this is the device's
                rendered height with nothing measured at runtime. */
             --dev-h: calc(var(--dw) * 2.0316);
-            /* 100cqh is the slot's height and 100svh the viewport, so
-               '100svh - 100cqh' is exactly how far down the slot starts —
-               the copy block's height, whatever it comes out at. */
-            /* The film's own width, repeated from the film rule below so the
-               face's position can be derived here. */
-            --film-h: calc(var(--dw) * 2.909);
-            /* WHERE THE FACE ENDS. The mask's linear pass fades the film out
-               between 52% and 86% of its height, so the last row carrying any
-               face is about 78% down the film box, and the film box itself
-               starts 1.0725 x --dw below the device top less half its height.
-               Measured against the render: at 1440 this lands at y=759 and the
-               closing headline's top edge is y=760. Desktop puts the text
-               exactly where the face stops, and this is that rule. */
-            --face-end: calc(var(--dw) * 1.0725 + var(--film-h) * 0.28);
-            /* 214px is the measured closing block, 8px the gap under the face. */
-            --clear: calc(100cqh - var(--face-end) - 222px);
             /* ── WHERE THE GROUP SITS ─────────────────────────────────────
                Three positions, one per beat, all derived rather than dialled
                in. Every one is expressed against '--natural' — how far down
@@ -1674,13 +2023,29 @@ function SimpleHero() {
                the film's top edge, 0.382 x --dw higher, did not. */
             --film-over: calc(var(--dw) * 0.382);
             --natural: calc(100svh - 100cqh);
-            --header: calc(72px + env(safe-area-inset-top, 0px));
-            --safe-b: env(safe-area-inset-bottom, 0px);
 
-            /* The group is the phone PLUS the grid under it, so the leftover
-               space is shared above and below rather than parked at one end. */
-            --group-h: calc(var(--dev-h) + var(--grid-top) + var(--grid-h));
-            --rest: calc(var(--header) + (100svh - var(--header) - var(--safe-b) - var(--group-h)) / 2 - var(--natural));
+            /* ── THE GROUP IS WHAT YOU CAN SEE ────────────────────────────
+               '--group-h' used to be 'device + grid', and that is the whole
+               of the clipping fault. The composition's visible top edge is
+               not the device's — it is the FILM's, 0.382 x --dw higher,
+               and the crown of her head is in that overhang. Centring the
+               DEVICE therefore placed the hair 60px above wherever the
+               centring thought the top was, which at 390x844 put it at
+               y=66 with a 72px header over it: the top of the head was
+               behind the navbar's blur, which is what read as a clean
+               horizontal cut across it.
+
+               Both ends are now honest. The top is the film's edge, the
+               bottom is the grid's, and because every row of the grid is
+               held to '--card-h' the bottom is the same on all three card
+               stages — so the leftover really is split evenly instead of
+               being parked under the cards on the short ones. */
+            --group-h: calc(var(--film-over) + var(--dev-h) + var(--grid-top) + var(--grid-h));
+            --slack: calc((var(--band) - var(--group-h)) / 2);
+            /* Place the FILM's top edge one '--slack' below the header, then
+               step down by the overhang to get the DEVICE's top, which is
+               what this transform actually moves. */
+            --rest: calc(var(--header) + var(--slack) + var(--film-over) - var(--natural));
 
             /* Stage 0: the FILM's top edge lands 16px under the buttons, so
                nothing the visitor can read is ever touched by the image. */
@@ -1690,11 +2055,18 @@ function SimpleHero() {
                above the closing text rather than being centred in the whole
                band — that centring was the gap. '--m-slack' is inherited from
                the section rule above, so the phone and the text move together
-               and the 24px between them cannot drift. */
-            --stage4: calc(var(--header) + var(--m-slack) - var(--natural));
+               and the 24px between them cannot drift. The '+ --film-over' is
+               the same correction '--rest' carries: '--m-slack' positions the
+               film's top edge, and this steps down to the device's. */
+            --stage4: calc(var(--header) + var(--m-slack) + var(--film-over) - var(--natural));
 
             transform: translateY(var(--rest));
             transition: transform 0.6s cubic-bezier(0.16,1,0.3,1);
+            /* The only thing that moves between stages, and it moves four
+               times over the pin. Promoting it once keeps each of those
+               600ms transitions off the main thread instead of re-layerizing
+               the phone, the film and the grid at every beat. */
+            will-change: transform;
           }
 
           /* Stages 1-3 take '--rest' from the rule above; these two differ. */
@@ -1709,33 +2081,24 @@ function SimpleHero() {
           #top .hero-close-phone { padding-bottom: calc(28px + env(safe-area-inset-bottom, 0px)); }
         }
 
+        /* The per-stage cross-fade, at every width this component covers. It
+           used to be an inline style on the wrapper, which made it
+           unextendable — see the phone block at the foot of this sheet, which
+           adds a delayed 'visibility' leg to it. */
+        #top .hero-flanks { transition: opacity 0.35s ease; }
+
         /* The four-card overlay. Guarded on container units: without them the
            calcs below are invalid and every card would fall back to no
            position at all, so the pre-existing 'hidden' behaviour is the
            right fallback. */
         @supports (width: 1cqw) {
           @media (max-width: 600px) {
-            #top .hero-dev {
-              /* THE GRID. Capped at 340px so the pair never stretches into
-                 two very wide, very short cards on a 430px screen; 16px of
-                 gutter either side on anything narrower. */
-              --grid-w: min(calc(100cqw - 32px), 340px);
-              --card-gap: 10px;
-              --grid-top: 14px;
-              /* The column width, which is also the card width the type
-                 scale below is derived from. */
-              --cw: calc((var(--grid-w) - var(--card-gap)) / 2);
-              /* Card height as a share of card width. NOT desktop's 0.612:
-                 at 165px instead of 188px the title and the longest meta line
-                 ("Cleanser · Moisturizer · SPF") both wrap to two lines, and
-                 the card comes out 160px tall — measured, not assumed. The
-                 reserve is sized for the TALLEST stage so the grid's bottom
-                 row can never fall off the screen on the one stage whose text
-                 runs longest; the shorter stages simply sit with a little more
-                 air beneath them. */
-              --card-h: calc(var(--cw) * 0.98);
-              --grid-h: calc(2 * var(--card-h) + var(--card-gap));
-            }
+            /* THE GRID'S METRICS ARE NOT DECLARED HERE ANY MORE. '--grid-w',
+               '--cw', '--card-h', '--grid-h', '--card-gap' and '--grid-top'
+               all live on '#top' now, because '--dw' is sized from what the
+               grid leaves over and the closing block needs the same numbers.
+               They are inherited into this subtree unchanged; only the rules
+               that USE them are below. */
 
             /* THE FILM, capped. Desktop stays 2.909 x the device and is not
                touched; here the same expression is held to the viewport, so
@@ -1782,6 +2145,21 @@ function SimpleHero() {
               transform: translateX(-50%);
               display: grid;
               grid-template-columns: repeat(2, minmax(0, 1fr));
+              /* ── EVERY ROW IS '--card-h', AND THAT IS THE FIX FOR THE
+                 TRAILING GAP ──────────────────────────────────────────────
+                 The rows used to size to their content, so the grid came out
+                 268px on "Skin Type", 338px on "My Skincare Plan" and 322px
+                 on "Consultation" — three different heights from one reserve
+                 that had to cover the tallest. The centring above spent that
+                 reserve whatever the stage, so the two short stages paid for
+                 space they never used and it collected as a band of nothing
+                 under the bottom row: 119px at stage 1, measured at 390x844.
+
+                 Fixing the row height makes the reserve exact. The grid is
+                 now '--grid-h' on all three card stages, the centring's
+                 arithmetic is true, and the cards come out a matched pair
+                 per row rather than ragged. */
+              grid-auto-rows: var(--card-h);
               gap: var(--card-gap);
             }
 
@@ -1795,6 +2173,16 @@ function SimpleHero() {
               right: auto !important;
               top: auto !important;
             }
+
+            /* The row sets the height; the card fills it. Without this the
+               card would still be content-height inside a fixed-height track
+               and the bottom row would float above its own baseline. The
+               chart is pushed to the foot of the card so the slack a short
+               stage has lands INSIDE the card, under the meta line, where it
+               reads as the card's own breathing room. */
+            #top .hero-flank > div { height: 100%; }
+            #top .hero-card { display: flex; flex-direction: column; }
+            #top .hero-card__chart { margin-top: auto; }
             #top .hero-flank--2, #top .hero-flank--3 { display: block; }
 
             /* READ ORDER. The DOM is 0,1,2,3 — cards 0 and 1 are the desktop
@@ -1821,35 +2209,141 @@ function SimpleHero() {
                yields a LENGTH — so '22px * that' is px squared, which is
                invalid, and every rule here silently dropped to the inherited
                16px. Multiplying the width by the desktop value and dividing by
-               the desktop width keeps one length and one plain ratio. */
+               the desktop width keeps one length and one plain ratio.
+
+               EVERY SIZE BELOW IS ONE OF THE RESERVES '--card-h' IS ADDED UP
+               FROM, and none of them is restated here as a fresh ratio. That
+               is the point: the box cannot drift out of step with what is in
+               it, because the box IS what is in it. */
             #top .hero-card {
-              padding: calc(var(--cw) * 20 / 188) calc(var(--cw) * 20 / 188) 0;
+              padding: var(--card-pad) var(--card-pad) 0;
             }
+
+            /* TWO LINES, ALWAYS, AND NEVER THREE. The reserve is what makes
+               every card the same shape; the clamp is what stops a longer
+               title than today's longest from breaking that promise. Both
+               halves are needed — 'min-height' alone lets a third line push
+               the chart out of the card, 'line-clamp' alone leaves a
+               one-line title sitting in a shorter box. */
             #top .hero-card__title {
-              font-size: calc(var(--cw) * 22 / 188);
-              margin-bottom: calc(var(--cw) * 13 / 188) !important;
+              font-size: var(--card-title-fs);
+              line-height: 1.06;
+              min-height: var(--card-title-h);
+              margin-bottom: var(--card-title-mb) !important;
               letter-spacing: calc(var(--cw) * -0.3 / 188);
+              display: -webkit-box;
+              -webkit-line-clamp: 2;
+              -webkit-box-orient: vertical;
+              overflow: hidden;
             }
             #top .hero-card__meta {
-              gap: calc(var(--cw) * 9 / 188) !important;
-              margin-bottom: calc(var(--cw) * 14 / 188);
+              gap: calc(var(--cw) * 8 / 188) !important;
+              min-height: var(--card-meta-h);
+              margin-bottom: var(--card-meta-mb) !important;
+              /* Top, not centre. With a two-line reserve under a one-line
+                 string, centring floated the glyph and its label into the
+                 middle of the gap and the cards stopped agreeing about where
+                 the meta row starts — which is the fault this whole block
+                 exists to remove. */
+              align-items: flex-start;
             }
             #top .hero-card__glyph {
-              width: calc(var(--cw) * 20 / 188);
-              height: calc(var(--cw) * 20 / 188);
-              font-size: calc(var(--cw) * 9 / 188);
+              width: calc(var(--cw) * 17 / 188);
+              height: calc(var(--cw) * 17 / 188);
+              font-size: calc(var(--cw) * 8 / 188);
+              /* Optically on the first line of the label beside it. */
+              margin-top: calc(var(--card-meta-fs) * 0.2);
             }
-            #top .hero-card__metatext { font-size: calc(var(--cw) * 12.5 / 188); }
+            #top .hero-card__metatext {
+              font-size: var(--card-meta-fs);
+              line-height: 1.35;
+              display: -webkit-box;
+              -webkit-line-clamp: 2;
+              -webkit-box-orient: vertical;
+              overflow: hidden;
+            }
+
+            /* The two chart kinds share '--card-chart-h' as their FOOTPRINT,
+               not as their height: the wave spends all of it on itself and
+               bleeds to the card's bottom edge, the bars spend two thirds on
+               the chart and one third on the margin under it. Same total
+               either way, which is what lets one '--card-h' cover both. */
+            /* 'flex-shrink: 0' is the guard rail. The chart is the last item
+               in a fixed-height flex column, so it is the one thing that can
+               absorb an arithmetic error above it — silently, by rendering
+               shorter than asked. Refusing to shrink turns any future
+               mistake into a visible overflow instead of a quiet one. */
+            #top .hero-card__chart { flex-shrink: 0; }
             #top .hero-card__chart--bars {
-              height: calc(var(--cw) * 36 / 188);
-              margin-bottom: calc(var(--cw) * 20 / 188);
-              gap: calc(var(--cw) * 6 / 188);
+              height: calc(var(--card-chart-h) * 0.66);
+              margin-bottom: calc(var(--card-chart-h) * 0.34);
+              gap: calc(var(--cw) * 5 / 188);
             }
             #top .hero-card__chart--wave {
-              height: calc(var(--cw) * 56 / 188);
-              margin-left: calc(var(--cw) * -20 / 188);
-              margin-right: calc(var(--cw) * -20 / 188);
+              height: var(--card-chart-h);
+              margin-left: calc(-1 * var(--card-pad));
+              margin-right: calc(-1 * var(--card-pad));
             }
+
+            /* The radius comes down with everything else — 22px on a 143px
+               card reads as a pill rather than a rounded rectangle. */
+            #top .hero-card { border-radius: calc(var(--cw) * 18 / 188); }
+          }
+        }
+
+        /* =====================================================================
+           WHAT THE CARDS COST PER FRAME
+           =====================================================================
+
+           Both rules below are PHONE ONLY and were measured, at 4x CPU
+           throttling on a 390x844 viewport, against the real pin scroll.
+
+           'backdrop-filter' is the expensive one. Twelve cards each asking
+           for a 26px blur plus a saturate of whatever is behind them means
+           twelve backdrop reads per frame, and the thing behind them is a
+           playing video — so every video frame invalidates all twelve. On
+           desktop that is affordable and the glass is part of the design.
+           At phone size the cards sit on flat canvas over a film that is
+           already faded to near-canvas underneath them, so the blur has
+           almost nothing to blur: swapping it for the colour it resolves to
+           is visually a wash and takes the per-frame backdrop work to zero.
+
+           'heroFloaty' is the other. It is a transform keyframe, which ought
+           to be composited, but the cards sit inside a wrapper whose opacity
+           is being cross-faded, so Chrome keeps them on the main thread and
+           charges a style recalc per card per frame — 972 of them across one
+           pass of the pin, measured. It also earns less here than it does on
+           desktop: four cards locked into a 2x2 grid bobbing 8px out of
+           phase with each other reads as wobble, not float. */
+        @media (max-width: 600px) {
+          #top .hero-card {
+            backdrop-filter: none;
+            -webkit-backdrop-filter: none;
+            /* What the blur resolves to over this section's canvas. */
+            background: rgba(255, 255, 255, 0.88);
+            /* '!important' is not decoration here. 'GlassCard' writes the
+               float as an INLINE 'animation' shorthand — it has to, because
+               each card gets its own duration — and an inline declaration
+               beats any rule in this sheet without it. The two properties
+               above need no such help: they come from Tailwind classes, which
+               sit in '@layer utilities', and an unlayered rule beats a
+               layered one whatever its specificity. */
+            animation: none !important;
+          }
+
+          /* Only the stage on screen is painted. All three groups stay
+             mounted — that is what keeps the cross-fade and the reverse
+             scroll working — but the two that are at opacity 0 were still
+             being composited, so the phone was paying for twelve cards to
+             show four. 'visibility' is held until the fade has finished, so
+             the transition itself is untouched. */
+          #top .hero-flanks {
+            visibility: hidden;
+            transition: opacity 0.35s ease, visibility 0s linear 0.35s;
+          }
+          #top .hero-flanks[data-active='1'] {
+            visibility: visible;
+            transition: opacity 0.35s ease, visibility 0s;
           }
         }
 
@@ -2085,10 +2579,14 @@ function SimpleHero() {
                 <div
                   key={g}
                   className="hero-flanks pointer-events-none absolute inset-0"
-                  style={{
-                    opacity: op[g],
-                    transition: 'opacity 0.35s ease',
-                  }}
+                  /* The fade's `transition` lives in the stylesheet, not here.
+                     An inline one beats any rule, and the phone block pairs
+                     `visibility` with the opacity so the two inactive groups
+                     stop being painted once they have finished fading —
+                     which it can only do by extending this same transition
+                     with a delayed `visibility` leg. */
+                  data-active={op[g] ? '1' : '0'}
+                  style={{ opacity: op[g] }}
                 >
                   {[0, 1].map((i) => (
                     <div

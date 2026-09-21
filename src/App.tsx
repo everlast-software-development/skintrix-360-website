@@ -15,6 +15,7 @@ import { HowItWorks } from '@/components/sections/HowItWorks'
 import { UvIndex } from '@/components/sections/UvIndex'
 import { Footer } from '@/components/layout/Footer'
 import { lazySection } from '@/lib/lazySection'
+import { useIdleOffscreenAnimation } from '@/hooks/useIdleOffscreenAnimation'
 import { useScrollRefresh } from '@/hooks/useScrollRefresh'
 
 /* Everything below the first screen and a half, plus both legal pages. See
@@ -97,6 +98,12 @@ const Page = ROUTES[path as keyof typeof ROUTES] ?? Landing
 
 export default function App() {
   useScrollRefresh()
+
+  /* Pauses keyframe animation in sections that are off screen. The hero pins
+     for five viewport-heights, so without this a phone spends that whole
+     stretch recalculating style for a footer three screens below it — see the
+     hook for the trace that found it. */
+  useIdleOffscreenAnimation()
 
   /**
    * Land a hashed URL on its section.

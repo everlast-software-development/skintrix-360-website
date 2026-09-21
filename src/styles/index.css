@@ -1162,6 +1162,35 @@
   }
 }
 
+/* ───────────────────────────────────────────────────────────────────────────
+   OFF-SCREEN DECORATION DOES NOT RUN
+
+   `data-offscreen` is written by `useIdleOffscreenAnimation`, which is where
+   the measurement and the reasoning live. The short version: a browser keeps
+   recalculating style for a keyframe animation whose element is three screens
+   away, and this page has enough of them — the footer's fifty-one cross-fading
+   letters most of all — to eat most of a phone's frame budget while the hero
+   is pinned at the top.
+
+   `animation-play-state` and nothing else. It freezes the work without
+   touching layout, resumes from the same point, and cannot change what an
+   element looks like once it is back on screen — unlike `content-visibility`,
+   which would also impose containment and make every section a containing
+   block for the footer reveal's `position: fixed` child.
+
+   BELOW THE DESKTOP CUT ONLY. 1025px is where this site stops being a phone
+   or tablet layout, and a desktop has the headroom to keep animating what it
+   cannot see. `!important` because the animations it pauses are Tailwind
+   utilities, which win on the cascade otherwise. */
+@media (max-width: 1024px) {
+  [data-offscreen],
+  [data-offscreen] *,
+  [data-offscreen] *::before,
+  [data-offscreen] *::after {
+    animation-play-state: paused !important;
+  }
+}
+
 
 
 /* ==== SKINTRIX FRAME SYSTEM =======================================
