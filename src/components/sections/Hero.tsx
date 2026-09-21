@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/Button'
 import { useMediaQuery } from '@/hooks/useMediaQuery'
 import { cn } from '@/lib/cn'
 import { HERO_FILM } from '@/lib/media'
+import { readSvh, requestScrollRefresh } from '@/lib/scrollRefresh'
 import { HERO, HERO_CLOSE } from '@/lib/site'
 
 /**
@@ -432,12 +433,41 @@ function restingShift(scale: number, viewportH: number) {
   return Math.round(Math.min(-160, Math.max(-430, centred)))
 }
 
+/**
+ * The viewport height the composition is positioned against — the SMALL one,
+ * not `window.innerHeight`.
+ *
+ * `restingShift` reads this to centre the film-and-phone band, and the effect
+ * below re-measures the pin whenever it changes. Both used to key off
+ * `window.innerHeight`, which on a phone or tablet grows by 60-120px the
+ * instant the address bar retracts — on the first scroll of every session.
+ * That made the first scroll do three things at once: re-render the hero,
+ * slide the whole composition to a new resting place, and schedule a full
+ * ScrollTrigger re-measure 160ms later, all while the finger was still moving.
+ *
+ * The small viewport is defined as the viewport with the browser's UI SHOWN,
+ * so it is the same number before and after the bar moves. Reading it here
+ * means the bar's own animation is no longer a layout change, and it matches
+ * what the pin budget has always used — `createHeroPin`'s `end` is a function
+ * of `readSvh()` too, so the two can no longer disagree about how tall the
+ * viewport is.
+ *
+ * The state only updates when the number actually differs, so a `resize` that
+ * is just the bar moving re-renders nothing.
+ */
 function useViewportHeight() {
-  const [vh, setVh] = useState(() => window.innerHeight)
+  const [vh, setVh] = useState(readSvh)
   useEffect(() => {
-    const onResize = () => setVh(window.innerHeight)
+    const onResize = () => setVh((prev) => {
+      const next = readSvh()
+      return next === prev ? prev : next
+    })
     window.addEventListener('resize', onResize)
-    return () => window.removeEventListener('resize', onResize)
+    window.addEventListener('orientationchange', onResize)
+    return () => {
+      window.removeEventListener('resize', onResize)
+      window.removeEventListener('orientationchange', onResize)
+    }
   }, [])
   return vh
 }
@@ -721,18 +751,16 @@ function ScrollHero({ fullCanvas }: { fullCanvas: boolean }) {
    * not alter `scale` (height-only, which moves `restingShift`); this catches a
    * `scale` change that arrives from the `ResizeObserver` without a `resize`
    * event at all — a devtools width drag does exactly that.
+   *
+   * IT DOES NOT FIRE ON THE FIRST SCROLL ANY MORE, which is the point of the
+   * change here. `viewportH` is now the small viewport rather than
+   * `window.innerHeight`, so a retracting address bar does not move it and
+   * this effect does not re-run; and when it does re-run, the re-measure goes
+   * through the scheduler, which holds it until the scroll is quiet.
    */
   useEffect(() => {
-    let timer: number | undefined
-    let cancelled = false
-    void import('@/lib/gsap').then(({ ScrollTrigger }) => {
-      if (cancelled) return
-      timer = window.setTimeout(() => ScrollTrigger.refresh(), 160)
-    })
-    return () => {
-      cancelled = true
-      window.clearTimeout(timer)
-    }
+    const timer = window.setTimeout(requestScrollRefresh, 160)
+    return () => window.clearTimeout(timer)
   }, [scale, viewportH])
 
   const stageHeight = PIN_H * scale
@@ -1500,21 +1528,6 @@ function HeroFilm({ className }: { className?: string }) {
       />
     </div>
   )
-}
-
-/**
- * `100svh` in pixels. There is no `window.innerSmallHeight`, so it is measured
- * from a throwaway element. `svh` and not `vh` because the address bar
- * collapsing changes `vh` mid-pin, which re-evaluates `end` and jumps.
- */
-function readSvh() {
-  const probe = document.createElement('div')
-  probe.style.cssText =
-    'position:fixed;top:0;left:0;width:0;height:100svh;visibility:hidden;pointer-events:none'
-  document.body.appendChild(probe)
-  const h = probe.getBoundingClientRect().height || window.innerHeight
-  probe.remove()
-  return h
 }
 
 /**

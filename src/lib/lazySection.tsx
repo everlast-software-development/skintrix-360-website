@@ -1,6 +1,8 @@
 import { Suspense, lazy, useEffect } from 'react'
 import type { ComponentType, ReactNode } from 'react'
 
+import { requestScrollRefresh } from '@/lib/scrollRefresh'
+
 /**
  * Code-splitting for the landing page's lower half.
  *
@@ -28,16 +30,17 @@ import type { ComponentType, ReactNode } from 'react'
 /**
  * Refresh once per mount, on the frame after layout.
  *
- * `refresh()` is idempotent and cheap next to a wrong offset, and batching is
- * unnecessary: GSAP already coalesces refreshes fired in the same tick.
+ * Through `requestScrollRefresh`, never `ScrollTrigger.refresh()` directly.
+ * Seven sections mount here and each one asks; they collapse into a single
+ * re-measure, and — the part that matters — it is held back if the visitor has
+ * already started scrolling, because a refresh rebuilds the hero's pin-spacer
+ * and changes the page's height while it does. See `scrollRefresh.ts`.
  */
 function useScrollTriggerRefresh() {
   useEffect(() => {
     let cancelled = false
     const frame = requestAnimationFrame(() => {
-      void import('@/lib/gsap').then(({ ScrollTrigger }) => {
-        if (!cancelled) ScrollTrigger.refresh()
-      })
+      if (!cancelled) requestScrollRefresh()
     })
     return () => {
       cancelled = true

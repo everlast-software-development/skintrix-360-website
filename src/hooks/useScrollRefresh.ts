@@ -1,5 +1,7 @@
 import { useEffect } from 'react'
 
+import { readSvh, requestScrollRefresh } from '@/lib/scrollRefresh'
+
 /**
  * Keeps ScrollTrigger's measurements honest. It does NOT drive the scroll.
  *
@@ -34,11 +36,16 @@ export function useScrollRefresh() {
     let disposed = false
     let teardown: (() => void) | undefined
 
-    void import('@/lib/gsap').then(({ ScrollTrigger }) => {
+    void import('@/lib/gsap').then(() => {
       if (disposed) return
 
-      // The variable webfont lands after first paint and shifts every measurement with it.
-      void document.fonts?.ready.then(() => ScrollTrigger.refresh())
+      /* The variable webfont lands after first paint and shifts every
+         measurement with it. Through the scheduler, because on a slow
+         connection it lands AFTER the visitor has started scrolling — and a
+         re-measure mid-scroll is the jump this is all about. */
+      void document.fonts?.ready.then(() => {
+        if (!disposed) requestScrollRefresh()
+      })
 
       /**
        * Re-measure everything after a resize — the fix for "the hero is broken
@@ -57,14 +64,37 @@ export function useScrollRefresh() {
        */
       let resizeTimer: number | undefined
       let lastWidth = document.documentElement.clientWidth
+      let lastSvh = readSvh()
 
       const remeasure = () => {
         window.clearTimeout(resizeTimer)
-        resizeTimer = window.setTimeout(() => ScrollTrigger.refresh(), 150)
+        resizeTimer = window.setTimeout(requestScrollRefresh, 150)
       }
 
+      /**
+       * A COLLAPSING ADDRESS BAR IS NOT A RESIZE, and this is the gate that
+       * says so.
+       *
+       * On a phone or tablet the bar retracts on the first scroll. That fires
+       * `resize` and moves `window.innerHeight` by 60-120px, and this handler
+       * used to treat it as a viewport change and re-measure every trigger
+       * 150ms later — in the middle of the gesture that caused it. It is the
+       * single most reliable way to make the first scroll of a session snap,
+       * and it happens on every touch device, every time.
+       *
+       * Nothing the hero measures actually changed. Its pin budget is a
+       * function of `100svh`, and the small viewport is DEFINED as the one
+       * with the bar shown, so it reads the same before and after. Width is
+       * unchanged too. So the test is width-or-svh, not `resize` — a rotation
+       * moves both and still refreshes, a desktop window dragged shorter moves
+       * svh and still refreshes, and the bar moves neither.
+       */
       const onResize = () => {
-        lastWidth = document.documentElement.clientWidth
+        const width = document.documentElement.clientWidth
+        const svh = readSvh()
+        if (width === lastWidth && svh === lastSvh) return
+        lastWidth = width
+        lastSvh = svh
         remeasure()
       }
       window.addEventListener('resize', onResize)
