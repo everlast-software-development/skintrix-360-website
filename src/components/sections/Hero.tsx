@@ -469,9 +469,70 @@ function useCanvasScale(ref: RefObject<HTMLElement | null>, fullCanvas: boolean)
   return scale
 }
 
-export function Hero() {
-  const reduced = useReducedMotion()
+/**
+ * A readout of what the hero decided, and why — on the device itself.
+ *
+ * OFF UNLESS THE URL ASKS FOR IT: `?hero-debug`. It renders nothing
+ * otherwise, and the flag is read once at module load so no visitor pays for
+ * it.
+ *
+ * It exists because the three inputs that pick a hero — CSS width,
+ * orientation and `prefers-reduced-motion` — are all properties of the DEVICE,
+ * and none of them can be read from anywhere else. A tablet reporting a width
+ * you did not expect, or with "Remove animations" switched on in
+ * accessibility settings, lands somewhere you did not intend, and from a
+ * desk there is no way to tell which. Remote debugging can answer it, but
+ * needs a cable and a laptop; this needs a query string.
+ *
+ * Open the site on the device with `?hero-debug` on the end of the URL and
+ * the badge names the width, the orientation, the reduced-motion state, which
+ * component mounted and what scale it chose.
+ */
+const HERO_DEBUG =
+  typeof window !== 'undefined' && /(?:^|[?&])hero-debug(?:[=&]|$)/.test(window.location.search)
 
+function HeroDebugBadge({ canvas, fullCanvas }: { canvas: boolean; fullCanvas: boolean }) {
+  /* Re-read on anything that can change the answer, rotation included. */
+  const [, bump] = useState(0)
+  useEffect(() => {
+    const onChange = () => bump((n) => n + 1)
+    window.addEventListener('resize', onChange)
+    window.addEventListener('orientationchange', onChange)
+    const mq = window.matchMedia('(prefers-reduced-motion: reduce)')
+    mq.addEventListener('change', onChange)
+    return () => {
+      window.removeEventListener('resize', onChange)
+      window.removeEventListener('orientationchange', onChange)
+      mq.removeEventListener('change', onChange)
+    }
+  }, [])
+
+  const w = document.documentElement.clientWidth
+  const h = document.documentElement.clientHeight
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  const lines = [
+    `css ${w}x${h} · dpr ${window.devicePixelRatio} · ${h > w ? 'portrait' : 'landscape'}`,
+    `reduced-motion: ${reduce ? 'ON' : 'off'}`,
+    canvas
+      ? `ScrollHero · ${fullCanvas ? 'desktop fit' : 'tablet fit'} · scale ${fitScale(w, fullCanvas).toFixed(3)}`
+      : 'SimpleHero (phone layout)',
+  ]
+
+  return (
+    <div
+      /* `fixed` and `pointer-events: none`, so it cannot cover or catch
+         anything you are trying to look at or tap. */
+      className="pointer-events-none fixed bottom-2 left-2 z-[100] rounded-lg px-3 py-2 font-mono text-[11px] leading-[1.5]"
+      style={{ background: 'rgba(12,16,32,0.86)', color: '#e8ecff' }}
+    >
+      {lines.map((line) => (
+        <div key={line}>{line}</div>
+      ))}
+    </div>
+  )
+}
+
+export function Hero() {
   /* THE CUT IS NOW 769, NOT 1025.
      `ScrollHero` is the four-corner canvas: cards at the four corners of the
      face, connector lines from each to a point on it. It used to stop at 1025
@@ -512,9 +573,34 @@ export function Hero() {
      so the choice stops mattering exactly where it stops being meaningful. */
   const isDesktopLandscape = useMediaQuery('(min-width: 1025px) and (orientation: landscape)')
 
-  if (reduced) return <SimpleHero />
-  if (isCanvas) return <ScrollHero fullCanvas={isDesktopLandscape} />
-  return <SimpleHero />
+  /* ── REDUCED MOTION PICKS A MOTION, NOT A LAYOUT ───────────────────────
+     There used to be a `useReducedMotion()` check above these, returning
+     `SimpleHero` at ANY width. That is the second way a portrait tablet
+     could end up in the stacked layout, and it is indistinguishable from
+     the first: Android's "Remove animations" — which MIUI's battery saver
+     turns on by itself — sets `prefers-reduced-motion: reduce`, and a
+     1000px tablet with it on rendered the 601-1024px flanking branch no
+     matter what the width rule below said. Verified at 1000x1600.
+
+     Reduced motion is a statement about ANIMATION, so it belongs where the
+     animation is, and both components already handle it there: each one's
+     `matchMedia` has a `reduce` condition that holds stage 0 and builds no
+     pin at all. Routing on it here was the layout paying for it, and it
+     also meant `ScrollHero`'s own `reduce` branch could never run.
+
+     With it gone the rule is total: NO viewport at 769px or wider renders
+     `SimpleHero`, under any setting. A reduced-motion visitor above that
+     width now gets the canvas hero held still on stage 0 — the headline,
+     the lead, both calls to action and the phone — rather than the phone
+     layout stretched across a tablet. */
+  return (
+    <>
+      {isCanvas ? <ScrollHero fullCanvas={isDesktopLandscape} /> : <SimpleHero />}
+      {HERO_DEBUG ? (
+        <HeroDebugBadge canvas={isCanvas} fullCanvas={isDesktopLandscape} />
+      ) : null}
+    </>
+  )
 }
 
 /**
