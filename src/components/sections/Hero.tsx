@@ -820,6 +820,43 @@ function ScrollHero({ fullCanvas }: { fullCanvas: boolean }) {
   const opLines = Math.max(...op)
   const cardY = (groupStage: number) => (stage === groupStage ? 0 : 26) + shift
 
+  /**
+   * HOW FAR THE CLOSING COPY HAS TO DROP TO STAY OFF THE PHONE.
+   *
+   * The closing block is pinned to canvas y=945 and never moves. The phone
+   * does: its group carries `shift`, so its bottom edge is at 1162 + shift.
+   * The clearance between them is therefore not a constant at all —
+   *
+   *     overlap = (1162 + shift) - 945 = 217 + shift
+   *
+   * — and `shift` is `restingShift`, which depends on the viewport's HEIGHT.
+   * A landscape tablet with browser chrome is about 675px tall, which asks
+   * for -255 and gets it: 38 canvas px of clear space under the phone, which
+   * is the layout that looks right. A portrait tablet asks for a POSITIVE
+   * shift, is clamped to -160 because the gesture is meant to move the visual
+   * up, and lands at 57 canvas px of overlap — the closing headline printed
+   * across the phone's lower frame and its ask pill.
+   *
+   * So the two screenshots of the same stage differ because one viewport is
+   * short and the other is tall, not because of anything about the copy.
+   *
+   * This closes the gap by moving the text, which is the smaller change: the
+   * phone, the film, the cards and every stage before this one stay exactly
+   * where they were, and only the block that was colliding moves. `max(0, …)`
+   * means it does nothing at all wherever the shift already clears the phone.
+   *
+   * TABLET PATH ONLY. Desktop is `fullCanvas` and stays byte-identical —
+   * at 1280x800 it keeps its own 53 canvas px of overlap, untouched. The
+   * same treatment would suit it, but it is not what was asked for and
+   * `1280x800 must stay pixel-identical` has been the standing rule.
+   */
+  const CLOSE_TOP = 945
+  const PHONE_BOTTOM = 1162
+  const CLOSE_GAP = 24
+  const closeDrop = fullCanvas
+    ? 0
+    : Math.max(0, PHONE_BOTTOM + shift - CLOSE_TOP + CLOSE_GAP)
+
   return (
     <section
       id="top"
@@ -999,12 +1036,13 @@ function ScrollHero({ fullCanvas }: { fullCanvas: boolean }) {
             }}
           />
 
-          {/* Close: the frame settles here once every set has cycled past. */}
+          {/* Close: the frame settles here once every set has cycled past.
+              `closeDrop` is what keeps it off the phone — see the constant. */}
           <div
             className="absolute inset-x-0 top-[945px] z-[9] flex flex-col items-center text-center"
             style={{
               opacity: opFinal,
-              transform: `translateY(${stage === 4 ? 0 : 30}px)`,
+              transform: `translateY(${(stage === 4 ? 0 : 30) + closeDrop}px)`,
               pointerEvents: stage === 4 ? 'auto' : 'none',
               transition: 'opacity 0.45s ease, transform 0.45s ease',
             }}
