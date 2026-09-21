@@ -1002,6 +1002,24 @@ function ScrollHero({ fullCanvas }: { fullCanvas: boolean }) {
               className="absolute inset-0 z-[7] pointer-events-none"
               style={{
                 opacity: op[i],
+                /* ONLY THE CURRENT SET IS PAINTED.
+                   Twelve cards are mounted and eight of them sit at opacity 0
+                   at any moment — but opacity 0 is still composited, and each
+                   card carries a 26px `backdrop-filter` blur plus an infinite
+                   `heroFloaty` transform. So the browser was re-reading and
+                   re-blurring the backdrop of eight invisible cards on every
+                   frame of the hero's pin: 3756 style invalidations against
+                   the hero cards in one full-page scroll at 1440x900, and the
+                   largest remaining share of `Layerize`.
+
+                   `visibility` can flip in the same frame as the opacity here,
+                   with no transition and no delay, because — as the note below
+                   already says — this opacity does NOT fade. It switches
+                   outright, so there is no intermediate state in which a
+                   hidden group should still be drawn, and the result is
+                   pixel-identical. The mobile layout got this treatment
+                   already; this is the desktop canvas catching up. */
+                visibility: op[i] ? 'visible' : 'hidden',
                 transform: `translateY(${cardY(i + 1)}px)`,
                 // Opacity switches immediately — no fade-in — so the incoming
                 // set is at full color the instant it's current; only the

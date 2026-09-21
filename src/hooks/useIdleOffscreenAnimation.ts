@@ -28,11 +28,12 @@ import { useEffect } from 'react'
  * resumes exactly where it left off, and the `rootMargin` un-pauses a section
  * a screen before it arrives, so nothing is ever seen starting up.
  *
- * NOT ON DESKTOP. The rule in index.css is inside `max-width: 1024px` — the
- * site's own desktop cut — so this only ever changes what a phone or tablet
- * does. The observer runs everywhere because the attribute is inert without
- * the rule, and a media-query listener to tear it down and rebuild it across
- * the breakpoint would cost more than it saves.
+ * EVERY WIDTH. The rule in index.css used to be capped at `max-width: 1024px`
+ * on the theory that a desktop could afford to animate what it cannot see. It
+ * cannot: traced at 1440x900 across a full-page scroll, style recalculation
+ * was the largest cost in the profile at 7760ms, and 51714 of those recalcs
+ * belonged to the footer's cross-fading letters while they were three screens
+ * below the viewport. The cap is gone.
  *
  * `prefers-reduced-motion` visitors have no running animations to pause, so
  * the observer is not built at all.

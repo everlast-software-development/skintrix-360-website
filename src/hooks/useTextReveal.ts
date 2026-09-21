@@ -83,7 +83,14 @@ function splitWords(root: HTMLElement): HTMLElement[] {
         const span = document.createElement('span')
         span.className = WORD_CLASS
         span.style.display = 'inline-block'
-        span.style.willChange = 'transform, opacity'
+        /* NO `will-change` HERE. It used to be set as each word was created,
+           which is at MOUNT — but the reveal does not run until the heading
+           scrolls into view, and most headings on this page are several
+           screens down. So every word in every un-revealed heading held a
+           promoted layer from first paint: 56 of them at 1440x900, measured,
+           against a `Layerize` cost of 6430ms across a full-page scroll.
+           It is set in `onStart` below instead, which is the moment it starts
+           being true. */
         span.textContent = part
         fragment.appendChild(span)
         words.push(span)
@@ -137,8 +144,11 @@ export function useTextReveal<T extends HTMLElement>({
           delay,
           ease: 'expo.out',
           stagger,
-          /* The transform is only needed while it moves. Left on, it promotes
-             every word to its own layer for the life of the page. */
+          /* The hint is true for exactly the length of this tween: on at the
+             first frame of the reveal, off at the last. Left on it promotes
+             every word to its own layer for the life of the page; set at
+             split time it did that before the reveal had even started. */
+          onStart: () => gsap.set(words, { willChange: 'transform, opacity' }),
           onComplete: () => gsap.set(words, { clearProps: 'willChange' }),
           scrollTrigger: {
             trigger: el,

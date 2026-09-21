@@ -1178,17 +1178,23 @@
    which would also impose containment and make every section a containing
    block for the footer reveal's `position: fixed` child.
 
-   BELOW THE DESKTOP CUT ONLY. 1025px is where this site stops being a phone
-   or tablet layout, and a desktop has the headroom to keep animating what it
-   cannot see. `!important` because the animations it pauses are Tailwind
-   utilities, which win on the cascade otherwise. */
-@media (max-width: 1024px) {
-  [data-offscreen],
-  [data-offscreen] *,
-  [data-offscreen] *::before,
-  [data-offscreen] *::after {
-    animation-play-state: paused !important;
-  }
+   EVERY WIDTH, INCLUDING DESKTOP. This was capped at 1024px on the assumption
+   that "a desktop has the headroom to keep animating what it cannot see". It
+   does not. Traced at 1440x900, scrolling the page from the top to the
+   footer, style recalculation came to 7760ms — the largest single cost in the
+   profile — and the invalidation log put 51714 of those recalcs on the
+   footer's `animate-wave` letters alone, which were three screens below the
+   viewport for almost all of it. At 390, where this rule already applied, the
+   same letters cost 3688. The cap was not a considered trade; it was the
+   fault.
+
+   `!important` because the animations it pauses are Tailwind utilities, which
+   win on the cascade otherwise. */
+[data-offscreen],
+[data-offscreen] *,
+[data-offscreen] *::before,
+[data-offscreen] *::after {
+  animation-play-state: paused !important;
 }
 
 
