@@ -123,6 +123,31 @@ const REFERENCE_W = 1280
 const REFERENCE_SCALE = REFERENCE_W / CANVAS_W
 
 /**
+ * On a portrait viewport, what share of the leftover height goes ABOVE the
+ * composition. Tablet path only — desktop's box is taller than its viewport,
+ * so there is no leftover to share and this never applies.
+ *
+ * THE LEFTOVER IS REAL AND IT HAS TO GO SOMEWHERE. The composition is about
+ * 800px tall whatever the screen; at 1000x1600 that leaves ~800px of nothing,
+ * and the only question is where. Dead centre — what 0.5 gave — put 357px of
+ * it above the headline, which starts the opening copy 26.4% down the screen
+ * against desktop's 8.4% and reads as a hole under the navbar.
+ *
+ * 0.34 moves the composition up by a sixth of the leftover. It does NOT and
+ * cannot close the gap: the same pixels reappear below the phone, and the
+ * only way to have the headline at desktop's 8% is to put the entire 800px
+ * underneath, which looks worse than the fault. Measured at 1000x1600, the
+ * opening copy goes from 26.4% to 19.3% of viewport height and the space
+ * under the phone from 370px to 469px. That is the whole trade, and this
+ * constant is the dial: 0.5 restores dead centre, 0.2 pushes it higher still.
+ *
+ * NOT the CTA-to-device gap, which was the other candidate and is not it —
+ * that gap is 12-14px at EVERY width including desktop, so there is nothing
+ * in it to reclaim and moving the copy up cannot transfer space into it.
+ */
+const PORTRAIT_TOP_SHARE = 0.34
+
+/**
  * One scale for both paths, so there is no width at which they disagree.
  *
  * THE BUG THIS REPLACES WAS A CLIFF AT THE BREAKPOINT. The tablet path fitted
@@ -853,7 +878,7 @@ function ScrollHero({ fullCanvas }: { fullCanvas: boolean }) {
             : `max(${stageHeight + HEADER_CLEARANCE}px, 100svh)`,
           paddingTop: fullCanvas
             ? HEADER_CLEARANCE
-            : `calc(${HEADER_CLEARANCE}px + max(0px, (100svh - ${stageHeight + HEADER_CLEARANCE}px) / 2))`,
+            : `calc(${HEADER_CLEARANCE}px + max(0px, (100svh - ${stageHeight + HEADER_CLEARANCE}px) * ${PORTRAIT_TOP_SHARE}))`,
         }}
       >
         <section
