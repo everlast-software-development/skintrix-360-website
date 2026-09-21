@@ -576,11 +576,33 @@ export function Hero() {
      readable, and tablets get the desktop hero rather than an approximation
      of it.
 
-     769 because that is where this file's phone tier ends. At 768 and below
-     the four-corner arrangement genuinely does not fit — two cards either
-     side of a legible phone needs ~316px plus the device — and `SimpleHero`'s
-     2x2-under-the-phone layout stays exactly as it is. */
-  const isCanvas = useMediaQuery('(min-width: 769px)')
+     ── 601, AND NOT 769 ──────────────────────────────────────────────────
+     It was 769, on the reasoning that 768 is where this file's phone tier
+     ends. That reasoning was about `SimpleHero`'s PHONE block, which is
+     `@media (max-width: 600px)` — not 768. Between 601 and 768 sat a third
+     layout nobody wants: the flanking branch, with the closing copy overlaid
+     ABOVE the phone, no "Download the App" button (it lives only in the
+     phone-only block, which is `min-[601px]:hidden`) and two cards pinned to
+     the far edges instead of four in the corners.
+
+     A Redmi Pad 2 in portrait lands in it. Its screen is 1600 device pixels
+     wide, and at the device-pixel-ratio Android gives an 11-inch tablet that
+     is a CSS width in the 600s — under the old cut, so a tablet got the
+     layout written for the gap. Confirmed by elimination rather than guessed:
+     the deployed bundle was checked and carries this file's current
+     breakpoints, `(min-width: 769px)` included, and the device still rendered
+     the flanking branch. Only a width of 768 or less produces that.
+
+     601 is the number because it is exactly where the phone block ends, so
+     the two are complementary with nothing in between: at 600 and below the
+     2x2-under-the-phone layout, unchanged; at 601 and above the canvas. The
+     gap is not moved, it is closed.
+
+     The cost is real and worth naming: at 601 the canvas fits its ink at
+     0.509, so a card title is 11px. That is small. It is still the whole
+     composition, correctly arranged, rather than a layout with no call to
+     action in it. */
+  const isCanvas = useMediaQuery('(min-width: 601px)')
 
   /* ── WHICH SIZING RULE, AND WHY ORIENTATION IS PART OF IT ──────────────
      `fullCanvas` is the untouched desktop behaviour: fit the whole 1840
