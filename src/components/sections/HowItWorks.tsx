@@ -614,7 +614,7 @@ export function HowItWorks() {
 
         {/* The steps, each on its own card: visual above, caption centred. */}
         <m.ol
-          className="mt-6 grid gap-6 lg:grid-cols-3"
+          className="mt-6 grid gap-6 min-[770px]:grid-cols-3"
           initial="hidden"
           whileInView="show"
           viewport={VIEWPORT}

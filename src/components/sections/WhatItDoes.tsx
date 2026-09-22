@@ -95,7 +95,7 @@ export function WhatItDoes() {
     >
       <div className="shell">
         <div className="mx-auto max-w-[80rem] overflow-hidden rounded-[2rem]">
-          <div className="grid lg:grid-cols-[1fr_1fr]">
+          <div className="grid min-[770px]:grid-cols-[1fr_1fr]">
 
             {/* ── Left: the subject, read.
 
@@ -118,7 +118,7 @@ export function WhatItDoes() {
                    never pulls an edge into the box. Without it a grey strip of
                    the wash showed along the photo's top — directly under the
                    text panel once the order flipped. */
-                className="block aspect-[4/5] w-full origin-center object-cover object-[58%_38%] will-change-transform lg:aspect-auto lg:h-full max-[769px]:relative max-[769px]:-top-[2%] max-[769px]:aspect-auto max-[769px]:h-[104%] max-[769px]:object-[center_30%]"
+                className="block aspect-[4/5] w-full origin-center object-cover object-[58%_38%] will-change-transform min-[770px]:aspect-auto min-[770px]:h-full max-[769px]:relative max-[769px]:-top-[2%] max-[769px]:aspect-auto max-[769px]:h-[104%] max-[769px]:object-[center_30%]"
               />
 
               {/* A soft directional wash. The frosted pills carry white text,
