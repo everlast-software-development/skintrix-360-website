@@ -411,11 +411,47 @@ function createHeroPin(
   setStage: (next: number) => void,
 ) {
   const sync = (self: { progress: number }) => setStage(stageFromProgress(self.progress))
+
+  /**
+   * THE PIN'S LENGTH IS MEASURED ONCE AND THEN HELD.
+   *
+   * `end` is still a function, because `invalidateOnRefresh` has to be able to
+   * pick up a genuine viewport change — a rotation, a desktop window dragged
+   * shorter. But it no longer re-reads the viewport unconditionally, and that
+   * is the difference between a stable first scroll and a jumping one.
+   *
+   * The scroll distance the whole sequence occupies is
+   * `STAGE_COUNT x perStage x svh`. If that number changes while somebody is
+   * part-way through the pin, their scroll position maps onto a different
+   * PROGRESS the moment it does — the same finger position now means a
+   * different point in the sequence — so the stage leaps, and it can leap by
+   * more than one. That is the reported jump from the intro straight to "My
+   * Skincare Plan".
+   *
+   * `svh` is the small viewport and by definition does not move when a phone's
+   * address bar retracts, so in theory this could not happen. In practice the
+   * first measurement is taken while the browser is still settling its
+   * viewport, and a later refresh can read a different number — which is the
+   * same jump from a different cause, and is invisible to any test that
+   * measures a settled page.
+   *
+   * So the budget is cached, and only a change of more than 10% replaces it.
+   * A toolbar collapse is 0% of `svh` and a mis-measurement at load is a few
+   * percent; a rotation is closer to 100%. The threshold separates them
+   * cleanly, and anything under it can never move the sequence under a finger
+   * that is already on the screen.
+   */
+  let svh = readSvh()
+  const budget = () => Math.round(STAGE_COUNT * perStage * svh)
+
   const st = ScrollTrigger.create({
     trigger: el,
     start: 'top top',
-    /* A function so every refresh re-reads the small viewport. */
-    end: () => '+=' + Math.round(STAGE_COUNT * perStage * readSvh()),
+    end: () => {
+      const next = readSvh()
+      if (Math.abs(next - svh) > svh * 0.1) svh = next
+      return '+=' + budget()
+    },
     pin: true,
     pinSpacing: true,
     anticipatePin: 1,
@@ -1352,12 +1388,31 @@ function BrandLabel({
       fluid size instead, because 26px on a 240px-wide device overruns the
       screen. Optional so the desktop call sites are untouched. */
   fontSize = 26,
+  /**
+   * SEQUENCES THE CROSS-FADE SO TWO LABELS NEVER SHOW AT ONCE.
+   *
+   * All five labels are stacked in one box and cross-faded on opacity. With a
+   * single symmetrical duration that is only safe while a stage lasts longer
+   * than the fade — and on a fast flick it does not. Measured at 392x844:
+   * [0.78, 0.33], [0.5, 0.58], [0.35, 0.75] — two titles legible at once,
+   * which is the doubled "My Skincare Plan" over "Skin Analysis".
+   *
+   * `fadeOut` is how long the leaving label takes, `delayIn` how long the
+   * arriving one waits before it starts. Set them so `delayIn >= fadeOut` and
+   * the two cannot overlap. Both default to the symmetrical behaviour, so a
+   * call site that passes neither is unchanged — which is how the desktop
+   * canvas keeps exactly the timing it had.
+   */
+  delayIn = 0,
+  fadeOut,
 }: {
   label: string
   opacity: number
   duration: number
   easing: 'ease' | 'linear'
   fontSize?: number | string
+  delayIn?: number
+  fadeOut?: number
 }) {
   return (
     <span
@@ -1367,7 +1422,12 @@ function BrandLabel({
         letterSpacing: 0.3,
         textShadow: '0 2px 18px rgba(11,31,51,0.55)',
         opacity,
-        transition: `opacity ${duration}s ${easing}`,
+        /* Arriving: wait `delayIn`, then `duration`. Leaving: start at once,
+           over `fadeOut` if one was given. */
+        transition:
+          opacity > 0
+            ? `opacity ${duration}s ${easing} ${delayIn}s`
+            : `opacity ${fadeOut ?? duration}s ${easing}`,
       }}
     >
       {label}
@@ -2283,11 +2343,33 @@ function SimpleHero() {
           #top .hero-close-phone { padding-bottom: calc(28px + env(safe-area-inset-bottom, 0px)); }
         }
 
-        /* The per-stage cross-fade, at every width this component covers. It
-           used to be an inline style on the wrapper, which made it
-           unextendable — see the phone block at the foot of this sheet, which
-           adds a delayed 'visibility' leg to it. */
-        #top .hero-flanks { transition: opacity 0.35s ease; }
+        /* ── THE PER-STAGE CROSS-FADE, SEQUENCED SO IT CANNOT DOUBLE ───────
+           The leaving set and the arriving set used to share one symmetrical
+           0.35s fade, which is fine only while a stage lasts longer than the
+           fade. It does not on a fast flick: cross a boundary in under 350ms
+           and both sets are part-way through, so you see two. Measured at
+           392x844 with a hard scroll — [0.83, 0.17] and [0.62, 0.38] — the
+           previous stage's cards ghosting under the new ones.
+
+           So the two halves are given their own timing. The leaving set has
+           140ms and starts immediately; the arriving set waits 150ms, by
+           which point the other is at zero, and then takes 200ms. Total is
+           still 350ms and it still reads as a cross-fade, but the two never
+           overlap however fast the boundary is crossed.
+
+           'visibility' rides along so a faded-out group stops being painted:
+           it flips at the END of the fade out, and at the START of the fade
+           in. */
+        #top .hero-flanks {
+          opacity: 0;
+          visibility: hidden;
+          transition: opacity 0.14s ease, visibility 0s linear 0.14s;
+        }
+        #top .hero-flanks[data-active='1'] {
+          opacity: 1;
+          visibility: visible;
+          transition: opacity 0.2s ease 0.15s, visibility 0s;
+        }
 
         /* The four-card overlay. Guarded on container units: without them the
            calcs below are invalid and every card would fall back to no
@@ -2533,20 +2615,13 @@ function SimpleHero() {
             animation: none !important;
           }
 
-          /* Only the stage on screen is painted. All three groups stay
-             mounted — that is what keeps the cross-fade and the reverse
-             scroll working — but the two that are at opacity 0 were still
-             being composited, so the phone was paying for twelve cards to
-             show four. 'visibility' is held until the fade has finished, so
-             the transition itself is untouched. */
-          #top .hero-flanks {
-            visibility: hidden;
-            transition: opacity 0.35s ease, visibility 0s linear 0.35s;
-          }
-          #top .hero-flanks[data-active='1'] {
-            visibility: visible;
-            transition: opacity 0.35s ease, visibility 0s;
-          }
+          /* Only the stage on screen is painted — all three groups stay
+             mounted, which is what keeps the cross-fade and the reverse
+             scroll working, but the two at opacity 0 were still being
+             composited and the phone was paying for twelve cards to show
+             four. That now comes from the sequenced rule near the top of this
+             sheet, which carries the (visibility) leg for every width this
+             component covers; there is nothing phone-specific left to say. */
         }
 
       `}</style>
@@ -2748,6 +2823,8 @@ function SimpleHero() {
                   label="SkinTrix360"
                   duration={0.4}
                   easing="ease"
+                  delayIn={0.15}
+                  fadeOut={0.14}
                   fontSize={HERO_LABEL_SIZE}
                 />
                 {GROUP_LABELS.map((label, i) => (
@@ -2757,6 +2834,8 @@ function SimpleHero() {
                     label={label}
                     duration={0.2}
                     easing="linear"
+                    delayIn={0.15}
+                    fadeOut={0.14}
                     fontSize={HERO_LABEL_SIZE}
                   />
                 ))}
@@ -2781,14 +2860,16 @@ function SimpleHero() {
                 <div
                   key={g}
                   className="hero-flanks pointer-events-none absolute inset-0"
-                  /* The fade's `transition` lives in the stylesheet, not here.
-                     An inline one beats any rule, and the phone block pairs
-                     `visibility` with the opacity so the two inactive groups
-                     stop being painted once they have finished fading —
-                     which it can only do by extending this same transition
-                     with a delayed `visibility` leg. */
+                  /* THE OPACITY IS NOT SET HERE ANY MORE, and that is the fix
+                     for the ghosting. An inline opacity with an inline
+                     transition gives every group the same symmetrical fade, so
+                     crossing a stage boundary faster than the fade lights two
+                     card sets at once — measured at 392x844 as [0.83, 0.17]:
+                     "Skin Analysis" still at 83% under "My Skincare Plan"
+                     coming up at 17%. `data-active` drives both the opacity
+                     and the visibility from the stylesheet, where the leaving
+                     and arriving halves can be given different timing. */
                   data-active={op[g] ? '1' : '0'}
-                  style={{ opacity: op[g] }}
                 >
                   {[0, 1].map((i) => (
                     <div
