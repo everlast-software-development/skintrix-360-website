@@ -146,8 +146,8 @@ const SOCIALS: Social[] = [
     href: 'https://www.facebook.com/profile.php?id=61590908840476',
     Icon: FaFacebookF,
   },
-  { label: 'Snapchat', href: 'https://www.snapchat.com/@skintrix360', Icon: FaSnapchat },
-  { label: 'X', href: 'https://x.com/skintrix360', Icon: FaXTwitter },
+  { label: 'Snapchat', href: '#', Icon: FaSnapchat },
+  { label: 'X', href: '#', Icon: FaXTwitter },
 ]
 
 const LEGAL = [
